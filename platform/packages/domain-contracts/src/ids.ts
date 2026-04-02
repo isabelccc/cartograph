@@ -29,6 +29,8 @@ export type ProductId = string & { readonly __brand: "ProductId" };
 /** One row inside a cart (distinct from `CartId`). */
 export type CartLineId = string & { readonly __brand: "CartLineId" };
 
+export type FulfillmentId = string & {readonly __brand: "FulfillmentId"}
+
 export type SessionId = string & {readonly __brand: "SessionId"};
 /** Cast after validating shape at HTTP/DB boundaries (see TODO above). */
 export function toOrderId(id: string): OrderId {
@@ -57,4 +59,8 @@ export function toVariantId(id: string): VariantId {
 
 export function toSessionId(id:string):SessionId{
     return id as SessionId;
+}
+
+export function toFullfillmentId(id:string):FulfillmentId{
+    return id as FulfillmentId
 }

@@ -11,5 +11,20 @@
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Domain modules — catalog
  */
-export type ProductId = string;
+
+import type { Variant,ProductId } from "./variant.types.js";
+
+export type {ProductId };
+
+export type Product ={
+    readonly id:ProductId,
+    readonly title:string,
+    readonly description:string,
+    readonly isActive: boolean;
+    readonly options: string[],
+    readonly variants: Variant[],
+    readonly createdAt: string;
+    readonly updatedAt: string;
+
+}
 
