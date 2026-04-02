@@ -1,0 +1,8 @@
+{
+  "name": "@platform/core-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"TODO: node --import tsx src/main.ts\""
+  }
+}

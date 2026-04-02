@@ -1,0 +1,5 @@
+# Shop GraphQL schema (stitched fragments) — optional package.
+# Requirements: resolvers map to domain services only (no SQL in resolvers).
+# TODO: [ ] Define Product, Cart, Checkout types
+# TODO: [ ] Align with domain-contracts
+# @see ../../../../docs/SERIES-B-PLATFORM.md — api-graphql

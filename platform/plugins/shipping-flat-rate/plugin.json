@@ -1,0 +1,12 @@
+{
+  "name": "@platform/plugin-shipping-flat-rate",
+  "version": "0.0.0",
+  "main": "./src/index.ts",
+  "contributes": {
+    "services": [],
+    "routes": [],
+    "workflows": []
+  },
+  "description": "Flat-rate shipping strategy.",
+  "requirementsNotes": []
+}

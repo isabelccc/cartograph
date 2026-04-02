@@ -1,0 +1,14 @@
+{
+  "name": "@platform/plugin-core-defaults",
+  "version": "0.0.0",
+  "main": "./src/index.ts",
+  "contributes": {
+    "services": [],
+    "routes": [],
+    "workflows": []
+  },
+  "description": "Default tax/shipping stubs.",
+  "requirementsNotes": [
+    "Contributes services + routes in plugin.json"
+  ]
+}

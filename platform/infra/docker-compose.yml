@@ -1,0 +1,3 @@
+# TODO: [ ] postgres, redis, meilisearch (per SERIES-B)
+# Requirements: match DATABASE_URL / REDIS_URL in env.schema
+services: {}

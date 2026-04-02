@@ -1,0 +1,14 @@
+{
+  "name": "@platform/plugin-payment-stripe",
+  "version": "0.0.0",
+  "main": "./src/index.ts",
+  "contributes": {
+    "services": [],
+    "routes": [],
+    "workflows": []
+  },
+  "description": "Stripe payment provider.",
+  "requirementsNotes": [
+    "Implements payment.provider.port only"
+  ]
+}

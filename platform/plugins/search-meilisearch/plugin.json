@@ -1,0 +1,14 @@
+{
+  "name": "@platform/plugin-search-meilisearch",
+  "version": "0.0.0",
+  "main": "./src/index.ts",
+  "contributes": {
+    "services": [],
+    "routes": [],
+    "workflows": []
+  },
+  "description": "Search indexing plugin.",
+  "requirementsNotes": [
+    "Subscribes to catalog events in worker"
+  ]
+}

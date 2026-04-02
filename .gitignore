@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# SQLite (Drizzle local dev)
+platform/packages/persistence-drizzle/data.sqlite
+platform/packages/persistence-drizzle/*.sqlite
+platform/packages/persistence-drizzle/*.sqlite-*
+
+# Build / output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Next.js (if present)
+nextjs-dashboard/.next/
+nextjs-dashboard/out/
+
+# IDE (optional — remove if you want to commit these)
+.idea/
+*.swp
+*.swo
+
+# Vite / Vitest cache
+.vite/

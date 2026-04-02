@@ -1,0 +1,4 @@
+# Admin GraphQL schema — optional.
+# Requirements: separate from shop; authz enforced per field or resolver.
+# TODO: [ ] Orders, refunds, catalog admin mutations
+# @see ../../../../docs/SERIES-B-PLATFORM.md — api-graphql
