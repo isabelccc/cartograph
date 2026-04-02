@@ -16,29 +16,20 @@ import { orders } from "./orders.js";
 export const fulfillments = sqliteTable("fulfillments", {
   id: text("id").primaryKey(),
   /** PII; unique login identifier in many systems */
-  orderId: text("order_id").references(() => {
-    orders.id,
-    onDelete: "set null"
-} ).notNull(),
+  orderId: text("order_id")
+  .notNull()
+  .references(() => orders.id, { onDelete: "cascade" }),
   /** PII */
-  name: text("name").notNull(),
+  lines: text("lines").notNull(),
   status: text("status").notNull(),
-  shippingAddress: text("shipping_address"),
+  carrier: text("carrier"),
+  trackingNumber: text("trackingNumber"),
+  trackingUrl: text("trackingUrl"),
+  shippedAt: text("shippedAt"),
+  deliveredAt: text("deliveredAt"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
-export type Fulfillment = {
-    readonly id: FulfillmentId;
-    readonly orderId: OrderId;
-    readonly lines: readonly FulfillmentLine[];
-    readonly status: FulfillmentStatus;
-    readonly carrier: string | null;
-    readonly trackingNumber: string | null;
-    readonly trackingUrl: string | null;
-    readonly shippedAt: string | null;
-    readonly deliveredAt: string | null;
-    readonly createdAt: string;
-    readonly updatedAt: string;
-  };
+
 
 

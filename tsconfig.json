@@ -10,5 +10,10 @@
     "isolatedModules": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["platform/**/*.ts"]
+  "include": [
+    "apps/**/*.ts",
+    "packages/**/*.ts",
+    "plugins/**/*.ts",
+    "tests/**/*.ts"
+  ]
 }
