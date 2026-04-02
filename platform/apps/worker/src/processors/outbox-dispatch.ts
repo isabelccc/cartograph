@@ -10,7 +10,7 @@
  * - [ ] On success update `published_at` / status; on failure increment retry count.
  * - [ ] Support multiple subscribers (search, analytics, third-party webhooks).
  *
- * @see ../../../../../docs/SERIES-B-PLATFORM.md — Events & outbox
+ * @see ../../../../docs/SERIES-B-PLATFORM.md — Events & outbox
  */
 export function registerOutboxDispatchProcessor(): never {
   throw new Error("TODO: outbox-dispatch processor — see file header JSDoc");

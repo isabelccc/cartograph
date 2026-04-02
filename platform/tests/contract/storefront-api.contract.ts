@@ -7,7 +7,7 @@
  * TODO:
  * - [ ] Schemathesis or openapi-diff
  *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Tests — contract
+ * @see ../../docs/SERIES-B-PLATFORM.md — Tests — contract
  */
 export function runStorefrontContractSuite(): never {
   throw new Error("TODO: runStorefrontContractSuite — see file header JSDoc");

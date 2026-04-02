@@ -7,7 +7,7 @@
  * TODO:
  * - [ ] Playwright or supertest + real DB
  *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Tests — e2e
+ * @see ../../docs/SERIES-B-PLATFORM.md — Tests — e2e
  */
 export function runCheckoutHappyPath(): never {
   throw new Error("TODO: runCheckoutHappyPath — see file header JSDoc");

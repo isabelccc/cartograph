@@ -1,22 +1,16 @@
 {
-  "name": "typescript-educative",
+  "name": "cartograph",
   "private": true,
   "type": "module",
   "scripts": {
     "db:generate": "cd platform/packages/persistence-drizzle && drizzle-kit generate",
     "db:push": "cd platform/packages/persistence-drizzle && drizzle-kit push",
-    "db:studio": "cd platform/packages/persistence-drizzle && drizzle-kit studio",
-    "test": "vitest run --config vitest.config.ts",
-    "test:topics": "vitest run --config vitest.config.ts",
-    "test:modules": "vitest run --config vitest.modules.config.ts",
-    "test:all": "vitest run --config vitest.config.ts && vitest run --config vitest.modules.config.ts",
-    "test:watch": "vitest --config vitest.config.ts"
+    "db:studio": "cd platform/packages/persistence-drizzle && drizzle-kit studio"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^5.7.3",
-    "vitest": "^3.0.9"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",

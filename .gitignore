@@ -1,3 +1,8 @@
+# Private local notes (not for the remote)
+instruction.md
+Instruction.md
+INSTRUCTION.md
+
 # Dependencies
 node_modules/
 
@@ -24,10 +29,6 @@ coverage/
 *.log
 .DS_Store
 Thumbs.db
-
-# Next.js (if present)
-nextjs-dashboard/.next/
-nextjs-dashboard/out/
 
 # IDE (optional — remove if you want to commit these)
 .idea/

@@ -11,5 +11,8 @@
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Persistence
  */
-export {};
+import { sqliteTable,text } from "drizzle-orm/sqlite-core";
+export const orders = sqliteTable("orders",{
+    id: text("id").primaryKey()
+});
 

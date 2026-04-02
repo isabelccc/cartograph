@@ -10,7 +10,7 @@
  * - [ ] Coordinate with checkout workflow timeout compensation (avoid races with explicit cancel).
  * - [ ] Metrics: released count, error count.
  *
- * @see ../../../../../docs/SERIES-B-PLATFORM.md — inventory module
+ * @see ../../../../docs/SERIES-B-PLATFORM.md — inventory module
  */
 export function registerInventoryReservationTtlProcessor(): never {
   throw new Error("TODO: inventory-reservation-ttl — see file header JSDoc");

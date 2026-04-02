@@ -10,7 +10,7 @@
  * - [ ] On success/failure update payment aggregate and append outbox (e.g. OrderPaid).
  * - [ ] Reconciliation job: pull provider reports, diff against local payments, log discrepancies to audit trail.
  *
- * @see ../../../../../docs/SERIES-B-PLATFORM.md — payment module, Workflows
+ * @see ../../../../docs/SERIES-B-PLATFORM.md — payment module, Workflows
  */
 export function registerPaymentCaptureProcessor(): never {
   throw new Error("TODO: payment-capture processor — see file header JSDoc");

@@ -11,7 +11,7 @@
  * - [ ] Handle full reindex vs incremental (separate job type or flag).
  * - [ ] Rate-limit and backoff per provider limits; surface lag metrics.
  *
- * @see ../../../../../docs/SERIES-B-PLATFORM.md — Apps worker, SERIES-B search plugin
+ * @see ../../../../docs/SERIES-B-PLATFORM.md — Apps worker, SERIES-B search plugin
  */
 export function registerSearchIndexProcessor(): never {
   throw new Error("TODO: search-index processor — see file header JSDoc");

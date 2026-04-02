@@ -10,13 +10,5 @@
     "isolatedModules": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": [
-    "topics/**/*.ts",
-    "modules/**/*.ts",
-    "platform/**/*.ts",
-    "vitest.config.ts",
-    "vitest.modules.config.ts",
-    "exercise.ts"
-  ],
-  "exclude": ["topics/**/*.test.ts"]
+  "include": ["platform/**/*.ts"]
 }
