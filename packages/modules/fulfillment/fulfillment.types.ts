@@ -47,3 +47,51 @@ export type Fulfillment = {
   readonly createdAt: string;
   readonly updatedAt: string;
 };
+
+/**
+ * Latest tracking view from a carrier API — not your persisted {@link Fulfillment} row.
+ * The service maps this onto repo state (status / deliveredAt).
+ */
+export type CarrierTrackingSnapshot = {
+  readonly trackingNumber: string;
+  readonly carrier: string;
+  readonly statusSummary: string;
+  readonly deliveredAt: string | null;
+};
+
+/** Address shape carriers expect (not your full customer profile). */
+export type CarrierPostalAddress = {
+  readonly name: string;
+  readonly line1: string;
+  readonly line2: string | null;
+  readonly city: string;
+  readonly region: string | null;
+  readonly postalCode: string;
+  readonly countryCode: string;
+};
+
+/** Buy postage + obtain label + tracking from the carrier API. */
+export type PurchaseLabelInput = {
+  readonly orderId: OrderId;
+  readonly fulfillmentId: FulfillmentId;
+  readonly shipFrom: CarrierPostalAddress;
+  readonly shipTo: CarrierPostalAddress;
+  /** Total parcel weight; line items alone are often not enough for rating. */
+  readonly packageWeightGrams: number;
+  /** Carrier-specific service (e.g. `UPS_GROUND`); `null` = adapter default. */
+  readonly serviceCode: string | null;
+};
+
+export type PurchaseLabelResult = {
+  readonly carrier: string;
+  readonly trackingNumber: string;
+  readonly trackingUrl: string | null;
+  /** Carrier’s shipment/transaction id — keep for void/refund APIs. */
+  readonly externalShipmentId: string;
+  readonly labelUrl: string | null;
+};
+
+export type CarrierLabelReference = {
+  readonly carrier: string;
+  readonly externalShipmentId: string;
+};
