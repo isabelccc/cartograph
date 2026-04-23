@@ -10,6 +10,7 @@
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Persistence
  */
 export function createInventoryRepository(): never {
+  // 
   throw new Error("TODO: createInventoryRepository — see file header JSDoc");
 }
 

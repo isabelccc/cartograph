@@ -42,6 +42,8 @@ export type Fulfillment = {
   readonly carrier: string | null;
   readonly trackingNumber: string | null;
   readonly trackingUrl: string | null;
+  /** From {@link PurchaseLabelResult.externalShipmentId}; required to void with the carrier. */
+  readonly externalShipmentId: string | null;
   readonly shippedAt: string | null;
   readonly deliveredAt: string | null;
   readonly createdAt: string;

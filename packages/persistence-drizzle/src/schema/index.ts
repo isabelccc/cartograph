@@ -4,3 +4,4 @@
 export { cartLines } from "./cart_lines.js";
 export { carts } from "./carts.js";
 export { customers } from "./customers.js";
+export { productIntakes } from "./product_intakes.js";

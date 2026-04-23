@@ -7,7 +7,7 @@
  * TODO (this file):
  * - [x] Branded string types for OrderId, CustomerId, CartId.
  * - [ ] Add remaining commerce IDs when you wire modules: ProductId, VariantId, PaymentId,
- *       FulfillmentId, PromotionId, TenantId, etc. (keep one brand literal per type).
+ *       FulfillmentId, ProductIntakeId (cost-estimation), PromotionId, TenantId, etc.
  * - [ ] Add `to*Id(raw: string)` helpers for each type (already started below — extend the set).
  * - [ ] Replace unchecked `as` casts inside `to*Id` with validation (UUID / ULID / prefix / regex)
  *       and throw a typed parse error or return `Result` from domain-contracts/errors.
@@ -29,9 +29,12 @@ export type ProductId = string & { readonly __brand: "ProductId" };
 /** One row inside a cart (distinct from `CartId`). */
 export type CartLineId = string & { readonly __brand: "CartLineId" };
 
-export type FulfillmentId = string & {readonly __brand: "FulfillmentId"}
+export type FulfillmentId = string & { readonly __brand: "FulfillmentId" };
 
-export type SessionId = string & {readonly __brand: "SessionId"};
+/** Creator / RFQ intake row used for ML cost prediction (see `packages/modules/cost-estimation`). */
+export type ProductIntakeId = string & { readonly __brand: "ProductIntakeId" };
+
+export type SessionId = string & { readonly __brand: "SessionId" };
 /** Cast after validating shape at HTTP/DB boundaries (see TODO above). */
 export function toOrderId(id: string): OrderId {
   return id as OrderId;
@@ -61,6 +64,10 @@ export function toSessionId(id:string):SessionId{
     return id as SessionId;
 }
 
-export function toFullfillmentId(id:string):FulfillmentId{
-    return id as FulfillmentId
+export function toFullfillmentId(id: string): FulfillmentId {
+  return id as FulfillmentId;
+}
+
+export function toProductIntakeId(id: string): ProductIntakeId {
+  return id as ProductIntakeId;
 }

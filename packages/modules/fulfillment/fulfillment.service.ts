@@ -6,18 +6,39 @@
  * - R-DOM-3 where applicable: state machines centralized.
  *
  * TODO:
- * - [ ] create shipment, tracking
+ * - [ ] Implement `createFulfillmentService` against `FulfillmentService`.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Domain modules — fulfillment
  */
-
-import type{ FulfillmentRepoPort } from "./fullfillment.repository.port.js";
-import type{ FulfillmentCarrierPort } from "./fulfillment.carrier.port.js";
+import type { FulfillmentCarrierPort } from "./fulfillment.carrier.port.js";
+import type { FulfillmentRepoPort } from "./fulfillment.repository.port.js";
+import type {
+  CarrierTrackingSnapshot,
+  Fulfillment,
+  FulfillmentId,
+  PurchaseLabelInput,
+  PurchaseLabelResult,
+} from "./fulfillment.types.js";
+import type { OrderId } from "../order/order.types.js";
 
 export type FulfillmentServiceDeps = {
-  readonly fullfillmentRepo: FulfillmentRepoPort;
-  readonly fullfillmentCarrier: FulfillmentCarrierPort;
+  readonly fulfillmentRepo: FulfillmentRepoPort;
+  readonly fulfillmentCarrier: FulfillmentCarrierPort;
 };
-export function createFulfillmentService(deps:FulfillmentServiceDeps) {
-  
+
+/** Public API produced by `createFulfillmentService` (implementations live in the factory body). */
+export interface FulfillmentService {
+  getFulfillmentById(id: FulfillmentId): Promise<Fulfillment | null>;
+  listFulfillmentsByOrderId(orderId: OrderId): Promise<readonly Fulfillment[]>;
+  purchaseShippingLabel(input: PurchaseLabelInput): Promise<PurchaseLabelResult>;
+  voidShippingLabel(fulfillmentId: FulfillmentId): Promise<void>;
+  getCarrierTrackingSnapshot(
+    trackingNumber: string,
+    carrierCode?: string,
+  ): Promise<CarrierTrackingSnapshot | null>;
+  syncFulfillmentFromCarrier(fulfillmentId: FulfillmentId): Promise<Fulfillment | null>;
+}
+
+export function createFulfillmentService(_deps: FulfillmentServiceDeps): never {
+  throw new Error("TODO: createFulfillmentService — see file header JSDoc");
 }
