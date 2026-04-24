@@ -14,10 +14,36 @@ import * as schema from "./schema/index.js";
 /** Use this type in repositories: `createCartRepository(db: AppDb)`. */
 export type AppDb = BetterSQLite3Database<typeof schema>;
 
+export interface DrizzleSqliteHandle {
+  readonly db: AppDb;
+  /** Close the underlying SQLite connection (idempotent for tests / shutdown). */
+  close(): void;
+}
+
+/**
+ * Open SQLite + Drizzle with an explicit lifecycle. Prefer this in long-lived servers;
+ * call {@link close} on shutdown.
+ *
+ * @param databasePath e.g. `:memory:` or `./data.sqlite`
+ */
+export function openDrizzleSqlite(databasePath: string): DrizzleSqliteHandle {
+  const sqlite = new Database(databasePath);
+  const db = drizzle(sqlite, { schema });
+  return {
+    db,
+    close: () => {
+      try {
+        sqlite.close();
+      } catch {
+        // already closed
+      }
+    },
+  };
+}
+
 /**
  * @param databasePath e.g. `:memory:` or `./data.sqlite`
  */
 export function createDrizzleClient(databasePath: string): AppDb {
-  const sqlite = new Database(databasePath);
-  return drizzle(sqlite, { schema });
+  return openDrizzleSqlite(databasePath).db;
 }

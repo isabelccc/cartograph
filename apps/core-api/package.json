@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "echo \"TODO: node --import tsx src/main.ts\""
+    "dev": "npx tsx src/main.ts",
+    "start": "npx tsx src/main.ts"
   }
 }

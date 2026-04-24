@@ -12,6 +12,9 @@
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Plugins
  */
-export function loadPlugins(): never {
-  throw new Error("TODO: plugins.manifest — see file header JSDoc");
+import type { PluginsManifest } from "./plugins.types.js";
+
+export function loadPlugins(): PluginsManifest {
+  // TODO: read env, instantiate plugin factories, return ordered list.
+  return [];
 }
