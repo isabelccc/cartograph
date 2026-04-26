@@ -1,20 +1,28 @@
 /**
  * Register core + community plugins (manifest).
  *
- * Requirements:
- * - Plugin metadata matches `plugins/。。/plugin.json` (name, version, contributes).
- * - Payment plugins implement `payment.provider.port` only; they must not mutate order aggregates directly (SERIES-B).
- *
- * TODO:
- * - [ ] Export plugin instances or factories: `core-defaults`, `payment-stripe` (optional), `shipping-flat-rate`, `search-meilisearch`.
- * - [ ] Toggle optional plugins via env.
- * - [ ] Log load failures to structured logs; fail-fast or degrade (document the policy).
+ * **Fail-fast:** load errors propagate — process should not start half-configured.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Plugins
  */
+import { createCoreDefaultsPlugin } from "../../../plugins/core-defaults/src/index.js";
+import type { CommercePlugin } from "../../../packages/kernel/src/plugin.types.js";
+import type { RequestLogger } from "./config/logger.js";
+import type { Env } from "./config/env.schema.js";
 import type { PluginsManifest } from "./plugins.types.js";
 
-export function loadPlugins(): PluginsManifest {
-  // TODO: read env, instantiate plugin factories, return ordered list.
-  return [];
+export function loadPlugins(opts: { env: Env; logger: RequestLogger }): PluginsManifest {
+  const plugins: CommercePlugin[] = [];
+  if (!opts.env.pluginCoreDefaultsDisabled) {
+    try {
+      plugins.push(createCoreDefaultsPlugin());
+    } catch (err) {
+      opts.logger.error("plugin_load_failed", {
+        plugin: "core-defaults",
+        err: String(err),
+      });
+      throw err;
+    }
+  }
+  return plugins;
 }

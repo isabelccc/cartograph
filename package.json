@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "db:generate": "cd platform/packages/persistence-drizzle && drizzle-kit generate",
-    "db:push": "cd platform/packages/persistence-drizzle && drizzle-kit push",
-    "db:studio": "cd platform/packages/persistence-drizzle && drizzle-kit studio"
+    "db:generate": "cd packages/persistence-drizzle && drizzle-kit generate",
+    "db:push": "cd packages/persistence-drizzle && drizzle-kit push",
+    "db:studio": "cd packages/persistence-drizzle && drizzle-kit studio"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

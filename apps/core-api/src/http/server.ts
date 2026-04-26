@@ -8,7 +8,8 @@
  *
  * TODO:
  * - [ ] Mount versioning (see versioning.ts): `/v1` prefix or Accept-Version.
- * - [ ] Async route wrapper so rejected promises call `next(err)` (Express 4).
+ *
+ * **Note:** Async handlers should use `asyncHandler` from `api-rest` so rejections reach the error boundary.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — R-NF-1, R-NF-3, Apps core-api
  */

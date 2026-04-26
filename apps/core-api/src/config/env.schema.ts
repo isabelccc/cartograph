@@ -5,6 +5,11 @@
  * - R-NF-5: Secrets only from env; no real secrets in defaults.
  * - Refuse to start in production if required vars are missing.
  *
+ * **Migrations:** `MIGRATIONS_ON_START` — when unset, defaults to `true` in
+ * `development` only; set `1`/`true` in other envs to migrate on boot, or run
+ * `pnpm db:push` / `drizzle-kit migrate` as a separate release step (preferred
+ * for production).
+ *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — R-NF-5
  */
 import path from "node:path";
@@ -24,6 +29,13 @@ const schema = z.object({
   /** Initial static flags; remote providers can wrap this later (R-NF-4). */
   FEATURE_CHECKOUT_V2: z.string().optional(),
   FEATURE_ASYNC_CAPTURE: z.string().optional(),
+  /**
+   * Apply Drizzle SQL migrations before accepting traffic. Default: on in
+   * `development` only; override with `0`/`false` or `1`/`true`.
+   */
+  MIGRATIONS_ON_START: z.string().optional(),
+  /** When truthy, skip loading the `core-defaults` plugin. */
+  PLUGIN_CORE_DEFAULTS_DISABLED: z.string().optional(),
 });
 
 export type Env = {
@@ -31,6 +43,8 @@ export type Env = {
   readonly port: number;
   readonly databasePath: string;
   readonly featureFlags: Record<string, boolean>;
+  readonly applyMigrationsOnStart: boolean;
+  readonly pluginCoreDefaultsDisabled: boolean;
 };
 
 /**
@@ -43,6 +57,12 @@ export function parseEnv(env: NodeJS.ProcessEnv = process.env): Env {
   }
   const databasePath =
     p.DATABASE_PATH ?? path.resolve(process.cwd(), "packages/persistence-drizzle/data.sqlite");
+
+  const applyMigrationsOnStart =
+    p.MIGRATIONS_ON_START !== undefined && p.MIGRATIONS_ON_START.trim() !== ""
+      ? optTruthy(p.MIGRATIONS_ON_START)
+      : p.NODE_ENV === "development";
+
   return {
     nodeEnv: p.NODE_ENV,
     port: p.PORT,
@@ -51,5 +71,7 @@ export function parseEnv(env: NodeJS.ProcessEnv = process.env): Env {
       checkout_v2: optTruthy(p.FEATURE_CHECKOUT_V2),
       async_capture: optTruthy(p.FEATURE_ASYNC_CAPTURE),
     },
+    applyMigrationsOnStart,
+    pluginCoreDefaultsDisabled: optTruthy(p.PLUGIN_CORE_DEFAULTS_DISABLED),
   };
 }

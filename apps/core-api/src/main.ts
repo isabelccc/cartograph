@@ -7,39 +7,29 @@
  * - R-NF-4: Risky capabilities behind feature flags (aligned with config/feature-flags).
  * - Bootstrap order matches kernel: config → DB → migrations → plugins → HTTP.
  *
- * TODO:
- * - [ ] Readiness beyond `ready()` (DB/redis) and dedicated `/ready` route.
- * - [ ] Register global Idempotency-Key handling for mutating handlers (R-NF-1).
+ * **Idempotency (R-NF-1):** `POST {shop}/demo/commits` (core-defaults plugin) requires
+ * `Idempotency-Key` and persists responses in SQLite; generalize with shared middleware later.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Apps core-api, Global R-NF-*
  */
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { AppContext } from "./app.js";
 import { createApp } from "./app.js";
+import { createRootLogger } from "./config/logger.js";
 import { createFeatureFlags } from "./config/feature-flags.js";
 import { parseEnv } from "./config/env.schema.js";
 import { createHttpServer } from "./http/server.js";
 import { loadPlugins } from "./plugins.manifest.js";
 import { openDrizzleSqlite } from "../../../packages/persistence-drizzle/src/client.js";
 
-function buildLogger() {
-  return {
-    info(message: string, meta?: Record<string, unknown>) {
-      console.log(`[INFO] ${message}`, meta ?? "");
-    },
-    warn(message: string, meta?: Record<string, unknown>) {
-      console.warn(`[WARN] ${message}`, meta ?? "");
-    },
-    error(message: string, meta?: Record<string, unknown>) {
-      console.error(`[ERROR] ${message}`, meta ?? "");
-    },
-  };
-}
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const migrationsFolder = path.join(repoRoot, "packages/persistence-drizzle/src/migrations");
 
 export async function main(): Promise<void> {
   const env = parseEnv();
-  const logger = buildLogger();
+  const logger = createRootLogger({ service: "core-api" });
   const sqlite = openDrizzleSqlite(env.databasePath);
 
   const context: AppContext = {
@@ -54,8 +44,13 @@ export async function main(): Promise<void> {
     },
   };
 
-  const manifest = loadPlugins();
-  const created = createApp({ manifest, context });
+  const manifest = loadPlugins({ env, logger });
+  const created = createApp({
+    manifest,
+    context,
+    applyMigrationsOnStart: env.applyMigrationsOnStart,
+    migrationsFolder,
+  });
   const http = createHttpServer(created, { port: env.port });
 
   let shuttingDown = false;
@@ -84,9 +79,19 @@ export async function main(): Promise<void> {
     port: env.port,
     nodeEnv: env.nodeEnv,
     databasePath: env.databasePath,
+    applyMigrationsOnStart: env.applyMigrationsOnStart,
     health: {
       admin: `http://127.0.0.1:${env.port}${mountPaths.admin}/health`,
       shop: `http://127.0.0.1:${env.port}${mountPaths.shop}/health`,
+    },
+    ready: {
+      root: `http://127.0.0.1:${env.port}/ready`,
+      admin: `http://127.0.0.1:${env.port}${mountPaths.admin}/ready`,
+      shop: `http://127.0.0.1:${env.port}${mountPaths.shop}/ready`,
+    },
+    demo: {
+      plugin: `http://127.0.0.1:${env.port}${mountPaths.shop}/plugin/core-defaults`,
+      idempotentPost: `http://127.0.0.1:${env.port}${mountPaths.shop}/demo/commits`,
     },
   });
 }

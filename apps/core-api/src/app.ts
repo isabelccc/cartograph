@@ -12,14 +12,33 @@
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Kernel, Plugins
  */
+import { randomUUID } from "node:crypto";
 import express, { type Application, type NextFunction, type Request, type Response } from "express";
+import { asyncHandler } from "../../../packages/api-rest/src/async-handler.js";
 import {
   problemFromDomainError,
   problemInternalServerError,
 } from "../../../packages/api-rest/src/problem-json.js";
 import type { AppDb } from "../../../packages/persistence-drizzle/src/client.js";
+import { createCatalogRepository } from "../../../packages/persistence-drizzle/src/repositories/catalog.repository.js";
+import { createCartRepository } from "../../../packages/persistence-drizzle/src/repositories/cart.repository.js";
+import { createOrderRepository } from "../../../packages/persistence-drizzle/src/repositories/order.repository.js";
+import { createCatalogService } from "../../../packages/modules/catalog/catalog.service.js";
+import { createCartService } from "../../../packages/modules/cart/cart.service.js";
+import { createOrderService } from "../../../packages/modules/order/order.service.js";
+import {
+  toCartId,
+  toProductId,
+  toSessionId,
+  toVariantId,
+} from "../../../packages/domain-contracts/src/ids.js";
+import type { CommercePluginRouteContext } from "../../../packages/kernel/src/plugin.types.js";
 import { DomainError } from "../../../packages/domain-contracts/src/errors.js";
+import { applyPendingMigrations } from "./bootstrap/migrations.js";
 import { withApiVersion } from "./http/versioning.js";
+import { readyHandler } from "./http/ready.js";
+import { requestContextMiddleware } from "./http/request-context.js";
+import type { RequestLogger } from "./config/logger.js";
 import type { PluginsManifest } from "./plugins.types.js";
 
 declare global {
@@ -38,11 +57,7 @@ interface AppLocals {
 export type { PluginsManifest } from "./plugins.types.js";
 
 export interface AppContext {
-  logger: {
-    info(message: string, meta?: Record<string, unknown>): void;
-    warn(message: string, meta?: Record<string, unknown>): void;
-    error(message: string, meta?: Record<string, unknown>): void;
-  };
+  logger: RequestLogger;
   db: AppDb | undefined;
   featureFlags: Record<string, boolean>;
   resolveTenant(req: Request): string | null;
@@ -51,12 +66,14 @@ export interface AppContext {
 }
 
 export interface CreateAppOptions {
-
   manifest: PluginsManifest;
   context: AppContext;
   adminPath?: string;
   shopPath?: string;
-
+  /** Absolute path to Drizzle SQL migrations folder (contains `meta/_journal.json`). */
+  migrationsFolder?: string;
+  /** When true, apply pending migrations in {@link CreatedApp.ready} (sync, before listen). */
+  applyMigrationsOnStart?: boolean;
 }
 
 /** Static info for logs, `/health`, and debugging — not for request routing. */
@@ -100,12 +117,13 @@ const CORE_API_VERSION = "0.0.0";
 function installErrorBoundary(app: Application): void {
   app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
     const ctx = req.app.locals.ctx;
+    const log = req.log ?? ctx.logger;
     if (err instanceof DomainError) {
       const problem = problemFromDomainError(err);
       res.status(problem.status).type("application/problem+json").json(problem);
       return;
     }
-    ctx.logger.error("unhandled_error", {
+    log.error("unhandled_error", {
       path: req.path,
       err: err instanceof Error ? err.message : String(err),
     });
@@ -122,26 +140,117 @@ export function createApp(options: CreateAppOptions): CreatedApp {
   app.locals.ctx = options.context;
 
   app.use(express.json({ limit: "1mb" }));
+  app.use(requestContextMiddleware());
+  app.get("/ready", asyncHandler(readyHandler));
 
   const adminMount = withApiVersion(adminPath);
   const shopMount = withApiVersion(shopPath);
 
   const adminRouter = express.Router();
   const shopRouter = express.Router();
+  const db = options.context.db;
+  const catalogRepo = db !== undefined ? createCatalogRepository(db) : undefined;
+  const cartRepo = db !== undefined ? createCartRepository(db) : undefined;
+  const orderRepo = db !== undefined ? createOrderRepository(db) : undefined;
+  const catalogService =
+    catalogRepo !== undefined ? createCatalogService({ catalogRepo }) : undefined;
+  const cartService =
+    cartRepo !== undefined && catalogRepo !== undefined
+      ? createCartService({ cartRepo, catalogRepo })
+      : undefined;
+  const orderService =
+    orderRepo !== undefined && cartRepo !== undefined
+      ? createOrderService({ orderRepo, cartRepo })
+      : undefined;
 
   adminRouter.get("/health", (_req, res) => {
     res.status(200).json({ ok: true, surface: "admin" });
   });
+  adminRouter.get("/ready", asyncHandler(readyHandler));
   shopRouter.get("/health", (_req, res) => {
     res.status(200).json({ ok: true, surface: "store" });
   });
+  shopRouter.get("/ready", asyncHandler(readyHandler));
+
+  if (catalogService !== undefined) {
+    shopRouter.get(
+      "/catalog/products",
+      asyncHandler(async (req, res) => {
+        const activeOnly =
+          typeof req.query.activeOnly === "string" && req.query.activeOnly === "true";
+        const products = await catalogService.listProducts({ activeOnly });
+        res.status(200).json({ items: products });
+      }),
+    );
+  }
+
+  if (cartRepo !== undefined) {
+    shopRouter.post(
+      "/carts",
+      asyncHandler(async (req, res) => {
+        const now = new Date().toISOString();
+        const cartId = toCartId(randomUUID());
+        const sessionId =
+          typeof req.body?.sessionId === "string" && req.body.sessionId.trim() !== ""
+            ? req.body.sessionId
+            : req.requestId;
+        const currency =
+          typeof req.body?.currency === "string" && req.body.currency.trim() !== ""
+            ? req.body.currency.trim().toUpperCase()
+            : "USD";
+        await cartRepo.save({
+          id: cartId,
+          sessionId: toSessionId(sessionId),
+          customerId: undefined,
+          currency,
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+          lines: [],
+        });
+        const created = await cartRepo.getById(cartId);
+        res.status(201).json(created);
+      }),
+    );
+  }
+
+  if (cartService !== undefined) {
+    shopRouter.post(
+      "/carts/:cartId/lines",
+      asyncHandler(async (req, res) => {
+        const quantity = BigInt(String(req.body?.quantity ?? "1"));
+        const line = await cartService.addLine(toCartId(String(req.params.cartId)), {
+          productId: toProductId(String(req.body.productId)),
+          variantId: toVariantId(String(req.body.variantId)),
+          quantity,
+        });
+        res.status(201).json(line);
+      }),
+    );
+  }
+
+  if (orderService !== undefined) {
+    shopRouter.post(
+      "/orders",
+      asyncHandler(async (req, res) => {
+        const order = await orderService.placeFromCart(toCartId(String(req.body.cartId)));
+        res.status(201).json(order);
+      }),
+    );
+  }
+
+  const pluginCtx: CommercePluginRouteContext = {
+    adminRouter,
+    shopRouter,
+    asyncHandler,
+    db,
+  };
+  for (const plugin of options.manifest) {
+    plugin.registerRoutes?.(pluginCtx);
+  }
 
   app.use(adminMount, adminRouter);
   app.use(shopMount, shopRouter);
-
-  for (const _plugin of options.manifest) {
-    // TODO: when CommercePlugin gains `configure` / `registerRoutes`, run here in order.
-  }
 
   installErrorBoundary(app);
 
@@ -150,7 +259,21 @@ export function createApp(options: CreateAppOptions): CreatedApp {
   return {
     express: app,
     async ready() {
-      options.context.logger.info("core-api ready", { name: CORE_API_NAME });
+      const { context, applyMigrationsOnStart, migrationsFolder } = options;
+      if (
+        applyMigrationsOnStart === true &&
+        context.db !== undefined &&
+        migrationsFolder !== undefined
+      ) {
+        try {
+          applyPendingMigrations(context.db, migrationsFolder);
+          context.logger.info("migrations_applied", { folder: migrationsFolder });
+        } catch (err) {
+          context.logger.error("migrations_failed", { err: String(err) });
+          throw err;
+        }
+      }
+      context.logger.info("core-api ready", { name: CORE_API_NAME });
     },
     meta: {
       name: CORE_API_NAME,

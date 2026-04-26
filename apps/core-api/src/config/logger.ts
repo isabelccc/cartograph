@@ -1,17 +1,48 @@
 /**
- * Structured logging (pino / winston) + trace / request id.
+ * Structured logging (JSON lines) + trace / request id.
  *
  * Requirements:
- * - R-NF-2: Every log line includes `requestId`; when known, include `tenantId`, `workflowId`, `orderId`.
- * - Do not log full PII in production by default; document redaction rules for required fields.
- *
- * TODO:
- * - [ ] Child logger factory: `createLogger(bindings)`.
- * - [ ] HTTP middleware: accept or generate `x-request-id` (UUID), store in async local storage.
- * - [ ] Correlate with observability/tracing traceId when OTEL is enabled.
+ * - R-NF-2: Log lines include `requestId`; when known, `tenantId` and other correlation ids.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — R-NF-2
  */
-export function createLogger(): never {
-  throw new Error("TODO: logger — see file header JSDoc");
+export type LogBindings = Record<string, unknown>;
+
+export type RequestLogger = {
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+};
+
+function line(
+  level: "info" | "warn" | "error",
+  message: string,
+  base: LogBindings,
+  meta?: Record<string, unknown>,
+): void {
+  const payload = {
+    level,
+    msg: message,
+    ts: new Date().toISOString(),
+    ...base,
+    ...meta,
+  };
+  const s = JSON.stringify(payload);
+  if (level === "error") console.error(s);
+  else if (level === "warn") console.warn(s);
+  else console.log(s);
+}
+
+/** Process-level logger (no request bindings). */
+export function createRootLogger(base: LogBindings = {}): RequestLogger {
+  return {
+    info: (m, meta) => line("info", m, base, meta),
+    warn: (m, meta) => line("warn", m, base, meta),
+    error: (m, meta) => line("error", m, base, meta),
+  };
+}
+
+/** Per-request logger (R-NF-2). */
+export function createRequestLogger(bindings: LogBindings): RequestLogger {
+  return createRootLogger(bindings);
 }
