@@ -11,5 +11,16 @@
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Persistence
  */
-export {};
+
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const products = sqliteTable("products", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  isActive: text("is_active").notNull(),
+  optionsJson: text("options_json").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
 

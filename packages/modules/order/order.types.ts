@@ -2,14 +2,39 @@
  * order — order.types (types)
  *
  * Requirements:
- * - Snapshots at submit
- * - R-DOM-1: Services use ports, not Drizzle.
- * - R-DOM-3 where applicable: state machines centralized.
- *
- * TODO:
- * - [ ] Order, line snapshots
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Domain modules — order
+ * - Snapshot line data at submit time.
+ * - R-DOM-2: money uses minor units.
  */
-export type OrderId = string;
+import type {
+  CustomerId,
+  Money,
+  OrderId,
+  ProductId,
+  VariantId,
+} from "../../domain-contracts/src/index.js";
 
+export type { CustomerId, Money, OrderId, ProductId, VariantId };
+
+export type OrderStatus = "placed" | "cancelled";
+
+export type OrderLine = {
+  readonly id: string;
+  readonly productId: ProductId;
+  readonly variantId: VariantId;
+  readonly title: string;
+  readonly quantity: bigint;
+  readonly unitPrice: Money;
+  readonly lineTotal: Money;
+};
+
+export type Order = {
+  readonly id: OrderId;
+  readonly customerId?: CustomerId | undefined;
+  readonly status: OrderStatus;
+  readonly currency: string;
+  readonly subtotal: Money;
+  readonly total: Money;
+  readonly lines: readonly OrderLine[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};

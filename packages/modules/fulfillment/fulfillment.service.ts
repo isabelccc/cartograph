@@ -39,6 +39,20 @@ export interface FulfillmentService {
   syncFulfillmentFromCarrier(fulfillmentId: FulfillmentId): Promise<Fulfillment | null>;
 }
 
-export function createFulfillmentService(_deps: FulfillmentServiceDeps): never {
-  throw new Error("TODO: createFulfillmentService — see file header JSDoc");
+export function createFulfillmentService(_deps: FulfillmentServiceDeps) {
+  
+  return {
+    async getFulfillmentById(id: FulfillmentId): Promise<Fulfillment | null>{
+    return _deps.fulfillmentRepo.getById(id);
+    },
+    async listFulfillmentsByOrderId(orderId:OrderId):Promise<readonly Fulfillment[]>{
+        return _deps.fulfillmentRepo.listByOrderId(orderId);
+
+    },
+    async purchaseShippingLabel(input: PurchaseLabelInput):Promise<PurchaseLabelResult>{
+      return _deps.fulfillmentCarrier.purchaseLabel(input);
+    },
+    async voidShippingLabel(fulfillmentId:FulfillmentId)
+
+  }
 }

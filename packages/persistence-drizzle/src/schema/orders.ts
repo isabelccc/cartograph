@@ -11,8 +11,19 @@
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Persistence
  */
-import { sqliteTable,text } from "drizzle-orm/sqlite-core";
-export const orders = sqliteTable("orders",{
-    id: text("id").primaryKey()
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { customers } from "./customers.js";
+
+export const orders = sqliteTable("orders", {
+  id: text("id").primaryKey(),
+  customerId: text("customer_id").references(() => customers.id, {
+    onDelete: "set null",
+  }),
+  status: text("status").notNull(),
+  currency: text("currency").notNull(),
+  subtotalAmountMinor: text("subtotal_amount_minor").notNull(),
+  totalAmountMinor: text("total_amount_minor").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
 });
 

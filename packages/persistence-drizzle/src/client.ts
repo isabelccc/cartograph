@@ -11,8 +11,10 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema/index.js";
 
+type SqliteConnection = InstanceType<typeof Database>;
+
 /** Use this type in repositories: `createCartRepository(db: AppDb)`. */
-export type AppDb = BetterSQLite3Database<typeof schema>;
+export type AppDb = BetterSQLite3Database<typeof schema> & { $client: SqliteConnection };
 
 export interface DrizzleSqliteHandle {
   readonly db: AppDb;

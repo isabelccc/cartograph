@@ -1,7 +1,7 @@
 /**
  * Drizzle Kit CLI config (generate / push / migrate).
  *
- * Run from this directory (`platform/packages/persistence-drizzle`) so paths resolve.
+ * Run from this directory (`packages/persistence-drizzle`) so paths resolve.
  *
  * @see https://orm.drizzle.team/docs/drizzle-config-file
  */

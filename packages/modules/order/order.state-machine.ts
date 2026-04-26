@@ -1,17 +1,21 @@
 /**
  * order — order.state-machine (state machine)
- *
- * Requirements:
- * - R-DOM-3
- * - R-DOM-1: Services use ports, not Drizzle.
- * - R-DOM-3 where applicable: state machines centralized.
- *
- * TODO:
- * - [ ] Explicit transitions; illegal → DomainError
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Domain modules — order
  */
-export function transitionOrderState(): never {
-  throw new Error("TODO: transitionOrderState — see file header JSDoc");
-}
+import { DomainError } from "../../domain-contracts/src/errors.js";
+import type { OrderStatus } from "./order.types.js";
 
+const allowed: Record<OrderStatus, readonly OrderStatus[]> = {
+  placed: ["cancelled"],
+  cancelled: [],
+};
+
+export function transitionOrderState(from: OrderStatus, to: OrderStatus): OrderStatus {
+  if (from === to) return to;
+  if (!allowed[from].includes(to)) {
+    throw new DomainError(
+      "ORDER_STATE_INVALID",
+      `Cannot transition order state from ${from} to ${to}`,
+    );
+  }
+  return to;
+}
