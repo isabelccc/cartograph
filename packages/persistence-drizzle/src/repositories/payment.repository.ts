@@ -88,10 +88,14 @@ export function createPaymentRepository(db: AppDb): PaymentRepositoryPort {
       return rows.map(rowToPayment);
     },
 
+    async findByStatus(status: PaymentStatus): Promise<readonly Payment[]> {
+      const rows = await db.select().from(payments).where(eq(payments.status, status));
+      return rows.map(rowToPayment);
+    },
+
     async save(payment: Payment): Promise<void> {
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(payments)
+      db.transaction((tx) => {
+        tx.insert(payments)
           .values({
             id: payment.id,
             orderId: payment.orderId,
@@ -114,7 +118,8 @@ export function createPaymentRepository(db: AppDb): PaymentRepositoryPort {
               metadataJson: JSON.stringify(payment.metadata),
               updatedAt: payment.updatedAt,
             },
-          });
+          })
+          .run();
       });
     },
   };

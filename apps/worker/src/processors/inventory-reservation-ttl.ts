@@ -1,17 +1,14 @@
 /**
- * Release expired inventory reservations (TTL job).
- *
- * Requirements:
- * - Match `inventory` module reservation semantics; no double-release.
- * - R-NF-7: Retries on failure; monitor long backlogs.
- *
- * TODO:
- * - [ ] Scan rows with `reserved_until < now()`; call inventory service to release.
- * - [ ] Coordinate with checkout workflow timeout compensation (avoid races with explicit cancel).
- * - [ ] Metrics: released count, error count.
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — inventory module
+ * Release expired inventory reservations (worker tick).
  */
-export function registerInventoryReservationTtlProcessor(): never {
-  throw new Error("TODO: inventory-reservation-ttl — see file header JSDoc");
+import type { AppDb } from "../../../../packages/persistence-drizzle/src/client.js";
+import { createInventoryRepository } from "../../../../packages/persistence-drizzle/src/repositories/inventory.repository.js";
+import { createInventoryService } from "../../../../packages/modules/inventory/inventory.service.js";
+
+export async function runInventoryReservationTtlTick(db: AppDb): Promise<number> {
+  const inventoryRepo = createInventoryRepository(db);
+  const inventoryService = createInventoryService({ inventoryRepo });
+  const now = new Date().toISOString();
+  const expired = await inventoryService.expireReservations(now);
+  return expired.length;
 }

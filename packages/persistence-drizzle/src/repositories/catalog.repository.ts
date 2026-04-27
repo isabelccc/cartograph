@@ -122,9 +122,8 @@ export function createCatalogRepository(db: AppDb): CatalogRepositoryPort {
     },
 
     async save(product: Product): Promise<void> {
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(products)
+      db.transaction((tx) => {
+        tx.insert(products)
           .values({
             id: product.id,
             title: product.title,
@@ -143,24 +142,27 @@ export function createCatalogRepository(db: AppDb): CatalogRepositoryPort {
               optionsJson: JSON.stringify(product.options),
               updatedAt: product.updatedAt,
             },
-          });
+          })
+          .run();
 
-        await tx.delete(variants).where(eq(variants.productId, product.id));
+        tx.delete(variants).where(eq(variants.productId, product.id)).run();
         for (const v of product.variants) {
-          await tx.insert(variants).values({
-            id: v.id,
-            productId: v.productId,
-            title: v.title,
-            optionsJson: JSON.stringify(v.options),
-            priceAmountMinor: v.price.amountMinor.toString(),
-            priceCurrency: v.price.currency,
-            compareAtAmountMinor: v.compareAtPrice.amountMinor.toString(),
-            compareAtCurrency: v.compareAtPrice.currency,
-            stock: v.stock.toString(),
-            isActive: String(v.isActive),
-            createdAt: v.createdAt,
-            updatedAt: v.updatedAt,
-          });
+          tx.insert(variants)
+            .values({
+              id: v.id,
+              productId: v.productId,
+              title: v.title,
+              optionsJson: JSON.stringify(v.options),
+              priceAmountMinor: v.price.amountMinor.toString(),
+              priceCurrency: v.price.currency,
+              compareAtAmountMinor: v.compareAtPrice.amountMinor.toString(),
+              compareAtCurrency: v.compareAtPrice.currency,
+              stock: v.stock.toString(),
+              isActive: String(v.isActive),
+              createdAt: v.createdAt,
+              updatedAt: v.updatedAt,
+            })
+            .run();
         }
       });
     },

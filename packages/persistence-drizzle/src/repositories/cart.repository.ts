@@ -100,9 +100,8 @@ export function createCartRepository(db: AppDb): CartRepositoryPort {
      * Domain service must build a consistent `Cart` (e.g. same currency on lines as header).
      */
     async save(cart: Cart): Promise<void> {
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(carts)
+      db.transaction((tx) => {
+        tx.insert(carts)
           .values({
             id: cart.id,
             sessionId: cart.sessionId,
@@ -121,21 +120,24 @@ export function createCartRepository(db: AppDb): CartRepositoryPort {
               status: cart.status,
               updatedAt: cart.updatedAt,
             },
-          });
+          })
+          .run();
 
-        await tx.delete(cartLines).where(eq(cartLines.cartId, cart.id));
+        tx.delete(cartLines).where(eq(cartLines.cartId, cart.id)).run();
 
         for (const line of cart.lines) {
-          await tx.insert(cartLines).values({
-            id: line.cartLineId,
-            cartId: cart.id,
-            productId: line.productId,
-            variantId: line.variantId,
-            title: line.title,
-            quantity: line.quantity.toString(),
-            unitAmountMinor: line.unitPrice.amountMinor.toString(),
-            lineTotalMinor: line.lineTotal.amountMinor.toString(),
-          });
+          tx.insert(cartLines)
+            .values({
+              id: line.cartLineId,
+              cartId: cart.id,
+              productId: line.productId,
+              variantId: line.variantId,
+              title: line.title,
+              quantity: line.quantity.toString(),
+              unitAmountMinor: line.unitPrice.amountMinor.toString(),
+              lineTotalMinor: line.lineTotal.amountMinor.toString(),
+            })
+            .run();
         }
       });
     },

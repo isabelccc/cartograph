@@ -1,18 +1,30 @@
 /**
- * Bulk indexing for Meilisearch / Elasticsearch (or similar).
- *
- * Requirements:
- * - Consume catalog / inventory change events (preferably via outbox) to avoid stale reads.
- * - Idempotent updates: same document version must not corrupt the index.
- * - R-NF-7: Retries, DLQ, and alerting on persistent failures.
- *
- * TODO:
- * - [ ] Map domain DTOs to search documents; batch upsert/delete.
- * - [ ] Handle full reindex vs incremental (separate job type or flag).
- * - [ ] Rate-limit and backoff per provider limits; surface lag metrics.
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Apps worker, SERIES-B search plugin
+ * Search index fan-out. Wire Meilisearch / ES when the plugin publishes index jobs.
  */
-export function registerSearchIndexProcessor(): never {
-  throw new Error("TODO: search-index processor — see file header JSDoc");
+import { Meilisearch } from "meilisearch";
+
+export async function runSearchIndexTick(opts?: {
+  readonly meiliUrl?: string;
+  readonly meiliKey?: string;
+  readonly topic?: string;
+  readonly payload?: string;
+}): Promise<number> {
+  if (opts?.meiliUrl === undefined || opts.topic === undefined || opts.payload === undefined) {
+    return 0;
+  }
+  const client = new Meilisearch({
+    host: opts.meiliUrl,
+    apiKey: opts.meiliKey,
+  });
+  const indexName = "domain-events";
+  const index = client.index(indexName);
+  await index.addDocuments([
+    {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      topic: opts.topic,
+      payload: opts.payload,
+      createdAt: new Date().toISOString(),
+    },
+  ]);
+  return 1;
 }

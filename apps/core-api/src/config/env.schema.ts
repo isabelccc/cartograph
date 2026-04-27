@@ -45,6 +45,35 @@ const schema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   /** Webhook signing secret (`whsec_…`) for `POST /webhooks/stripe`. */
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  /**
+   * When set, shop mutating routes require `X-Shop-Key` or `Authorization: Bearer`.
+   * Leave unset for local MVP; set in shared demo/staging.
+   */
+  SHOP_API_KEY: z.string().optional(),
+  /** CORS `Access-Control-Allow-Origin` (e.g. `http://localhost:3000`). Empty = no CORS middleware. */
+  CORS_ORIGIN: z.string().optional(),
+  /** Shop-wide discount in basis points (100 = 1%). Omit or `0` to disable. */
+  PROMOTION_DISCOUNT_BPS: z.string().optional(),
+  /**
+   * Per-IP HTTP rate limit (requests per minute). Omit for default 300; `0` disables limiting.
+   */
+  RATE_LIMIT_PER_MINUTE: z.string().optional(),
+  /** When `X-Tenant-Id` is absent, use this tenant id (optional; null if unset). */
+  DEFAULT_TENANT_ID: z.string().optional(),
+  /** OIDC issuer URL (e.g. https://example.clerk.accounts.dev). */
+  OIDC_ISSUER: z.string().optional(),
+  /** OIDC audience expected in access tokens. */
+  OIDC_AUDIENCE: z.string().optional(),
+  /** OIDC JWKS endpoint URL. */
+  OIDC_JWKS_URL: z.string().optional(),
+  /** Redis URL for queue/events (BullMQ). */
+  REDIS_URL: z.string().optional(),
+  /** Meilisearch endpoint URL. */
+  MEILI_URL: z.string().optional(),
+  /** Meilisearch admin/search API key. */
+  MEILI_KEY: z.string().optional(),
+  /** Shipping provider API key (Shippo/EasyPost depending on adapter). */
+  SHIPPING_API_KEY: z.string().optional(),
 });
 
 export type Env = {
@@ -57,6 +86,18 @@ export type Env = {
   readonly adminApiKey: string | undefined;
   readonly stripeSecretKey: string | undefined;
   readonly stripeWebhookSecret: string | undefined;
+  readonly shopApiKey: string | undefined;
+  readonly corsOrigin: string | undefined;
+  readonly promotionDiscountBps: bigint | undefined;
+  readonly rateLimitPerMinute: number | undefined;
+  readonly defaultTenantId: string | undefined;
+  readonly oidcIssuer: string | undefined;
+  readonly oidcAudience: string | undefined;
+  readonly oidcJwksUrl: string | undefined;
+  readonly redisUrl: string | undefined;
+  readonly meiliUrl: string | undefined;
+  readonly meiliKey: string | undefined;
+  readonly shippingApiKey: string | undefined;
 };
 
 /**
@@ -85,6 +126,46 @@ export function parseEnv(env: NodeJS.ProcessEnv = process.env): Env {
     p.STRIPE_WEBHOOK_SECRET !== undefined && p.STRIPE_WEBHOOK_SECRET.trim() !== ""
       ? p.STRIPE_WEBHOOK_SECRET.trim()
       : undefined;
+  const shopApiKey =
+    p.SHOP_API_KEY !== undefined && p.SHOP_API_KEY.trim() !== "" ? p.SHOP_API_KEY.trim() : undefined;
+  const corsOrigin =
+    p.CORS_ORIGIN !== undefined && p.CORS_ORIGIN.trim() !== "" ? p.CORS_ORIGIN.trim() : undefined;
+
+  let promotionDiscountBps: bigint | undefined;
+  if (p.PROMOTION_DISCOUNT_BPS !== undefined && p.PROMOTION_DISCOUNT_BPS.trim() !== "") {
+    try {
+      const b = BigInt(p.PROMOTION_DISCOUNT_BPS.trim());
+      if (b < 0n || b > 10_000n) {
+        throw new Error("PROMOTION_DISCOUNT_BPS must be between 0 and 10000 (basis points)");
+      }
+      promotionDiscountBps = b === 0n ? undefined : b;
+    } catch (e) {
+      throw new Error(
+        `Invalid PROMOTION_DISCOUNT_BPS: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  let rateLimitPerMinute: number | undefined;
+  if (p.RATE_LIMIT_PER_MINUTE !== undefined && p.RATE_LIMIT_PER_MINUTE.trim() !== "") {
+    const n = Number.parseInt(p.RATE_LIMIT_PER_MINUTE.trim(), 10);
+    if (Number.isNaN(n) || n < 0) {
+      throw new Error("RATE_LIMIT_PER_MINUTE must be a non-negative integer");
+    }
+    rateLimitPerMinute = n;
+  }
+
+  const defaultTenantId =
+    p.DEFAULT_TENANT_ID !== undefined && p.DEFAULT_TENANT_ID.trim() !== ""
+      ? p.DEFAULT_TENANT_ID.trim()
+      : undefined;
+  const oidcIssuer = p.OIDC_ISSUER?.trim() ? p.OIDC_ISSUER.trim() : undefined;
+  const oidcAudience = p.OIDC_AUDIENCE?.trim() ? p.OIDC_AUDIENCE.trim() : undefined;
+  const oidcJwksUrl = p.OIDC_JWKS_URL?.trim() ? p.OIDC_JWKS_URL.trim() : undefined;
+  const redisUrl = p.REDIS_URL?.trim() ? p.REDIS_URL.trim() : undefined;
+  const meiliUrl = p.MEILI_URL?.trim() ? p.MEILI_URL.trim() : undefined;
+  const meiliKey = p.MEILI_KEY?.trim() ? p.MEILI_KEY.trim() : undefined;
+  const shippingApiKey = p.SHIPPING_API_KEY?.trim() ? p.SHIPPING_API_KEY.trim() : undefined;
 
   return {
     nodeEnv: p.NODE_ENV,
@@ -99,5 +180,17 @@ export function parseEnv(env: NodeJS.ProcessEnv = process.env): Env {
     adminApiKey,
     stripeSecretKey,
     stripeWebhookSecret,
+    shopApiKey,
+    corsOrigin,
+    promotionDiscountBps,
+    rateLimitPerMinute,
+    defaultTenantId,
+    oidcIssuer,
+    oidcAudience,
+    oidcJwksUrl,
+    redisUrl,
+    meiliUrl,
+    meiliKey,
+    shippingApiKey,
   };
 }

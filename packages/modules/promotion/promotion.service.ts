@@ -1,17 +1,29 @@
 /**
  * promotion — promotion.service (service)
  *
- * Requirements:
- * - Coupon limits, schedule windows
- * - R-DOM-1: Services use ports, not Drizzle.
- * - R-DOM-3 where applicable: state machines centralized.
- *
- * TODO:
- * - [ ] apply promotions
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Domain modules — promotion
+ * Applies a simple basis-points discount to an order subtotal (MVP rules engine).
  */
-export function createPromotionService(): never {
-  throw new Error("TODO: createPromotionService — see file header JSDoc");
-}
+export type PromotionService = {
+  readonly apply: (orderSubtotal: {
+    amountMinor: bigint;
+    currency: string;
+  }) => Promise<{ amountMinor: bigint; currency: string }>;
+};
 
+export type PromotionServiceOptions = {
+  /** Discount in basis points (100 = 1%, 1000 = 10%). */
+  readonly discountBps: bigint;
+};
+
+export function createPromotionService(opts: PromotionServiceOptions): PromotionService {
+  const bps = opts.discountBps < 0n ? 0n : opts.discountBps;
+  return {
+    async apply(subtotal) {
+      if (bps === 0n) {
+        return { amountMinor: 0n, currency: subtotal.currency };
+      }
+      const discount = (subtotal.amountMinor * bps) / 10000n;
+      return { amountMinor: discount, currency: subtotal.currency };
+    },
+  };
+}

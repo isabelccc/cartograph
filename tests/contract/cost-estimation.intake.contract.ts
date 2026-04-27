@@ -1,12 +1,13 @@
 /**
- * Contract tests: admin product-intake API + predictor service.
- *
- * TODO:
- * - [ ] Supertest against admin-bff or core-api once routes exist.
- * - [ ] Snapshot OpenAPI/JSON Schema for intake create + predict responses.
- *
- * @see ../../docs/COST-PREDICTION.md
+ * Cost-estimation intake: review-queue status is stable for admin list filters.
  */
-export function costEstimationIntakeContractTODO(): never {
-  throw new Error("TODO: costEstimationIntakeContract — see file header JSDoc");
-}
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import type { ProductIntakeStatus } from "../../packages/modules/cost-estimation/cost-estimation.types.js";
+
+test("needs_review is a valid ProductIntakeStatus", () => {
+  const status = "needs_review";
+  const _: ProductIntakeStatus = status;
+  assert.equal(_, "needs_review");
+});

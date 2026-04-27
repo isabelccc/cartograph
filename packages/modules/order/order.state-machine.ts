@@ -5,7 +5,10 @@ import { DomainError } from "../../domain-contracts/src/errors.js";
 import type { OrderStatus } from "./order.types.js";
 
 const allowed: Record<OrderStatus, readonly OrderStatus[]> = {
-  placed: ["cancelled"],
+  placed: ["paid", "cancelled"],
+  paid: ["shipped", "cancelled"],
+  shipped: ["delivered", "cancelled"],
+  delivered: [],
   cancelled: [],
 };
 

@@ -1,15 +1,18 @@
 /**
  * Prometheus counters/histograms.
  *
- * Requirements:
- * - Per-queue metrics for worker
- *
- * TODO:
- * - [ ] Implement with provider SDK or no-op
+ * Default implementation is a no-op; replace with a provider in production.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — observability
  */
-export function createMetrics(): never {
-  throw new Error("TODO: createMetrics — see file header JSDoc");
-}
+export type Metrics = {
+  readonly inc: (name: string, value?: number) => void;
+  readonly observe: (name: string, value: number) => void;
+};
 
+export function createMetrics(): Metrics {
+  return {
+    inc() {},
+    observe() {},
+  };
+}

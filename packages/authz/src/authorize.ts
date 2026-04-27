@@ -1,15 +1,11 @@
 /**
- * authorize(actor, action, resource).
- *
- * Requirements:
- * - Centralize checks
- *
- * TODO:
-
+ * authorize(actorKind, action) — coarse RBAC gate.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — authz
  */
-export function authorize(): never {
-  throw new Error("TODO: authorize — see file header JSDoc");
-}
+import { loadPolicies, type Action, type ActorKind } from "./policies.js";
 
+export function authorize(actor: ActorKind, action: Action): boolean {
+  const policies = loadPolicies();
+  return policies[actor]?.has(action) ?? false;
+}

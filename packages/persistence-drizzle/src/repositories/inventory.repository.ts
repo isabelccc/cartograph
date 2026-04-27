@@ -97,9 +97,8 @@ export function createInventoryRepository(db: AppDb): InventoryRepositoryPort {
     },
 
     async saveStockLevel(stockLevel: StockLevel): Promise<void> {
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(inventory_stock_levels)
+      db.transaction((tx) => {
+        tx.insert(inventory_stock_levels)
           .values({
             variantId: stockLevel.variantId,
             sku: stockLevel.sku,
@@ -117,15 +116,15 @@ export function createInventoryRepository(db: AppDb): InventoryRepositoryPort {
               availableToPromise: stockLevel.availableToPromise.toString(),
               updatedAt: stockLevel.updatedAt,
             },
-          });
+          })
+          .run();
       });
     },
 
     async createReservation(reservation: InventoryReservation): Promise<InventoryReservation> {
       const values = reservationValues(reservation);
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(inventory_reservations)
+      db.transaction((tx) => {
+        tx.insert(inventory_reservations)
           .values(values)
           .onConflictDoUpdate({
             target: inventory_reservations.id,
@@ -136,7 +135,8 @@ export function createInventoryRepository(db: AppDb): InventoryRepositoryPort {
               expiresAt: values.expiresAt,
               updatedAt: values.updatedAt,
             },
-          });
+          })
+          .run();
       });
 
       return reservation;
@@ -155,9 +155,8 @@ export function createInventoryRepository(db: AppDb): InventoryRepositoryPort {
 
     async saveReservation(reservation: InventoryReservation): Promise<void> {
       const values = reservationValues(reservation);
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(inventory_reservations)
+      db.transaction((tx) => {
+        tx.insert(inventory_reservations)
           .values(values)
           .onConflictDoUpdate({
             target: inventory_reservations.id,
@@ -168,7 +167,8 @@ export function createInventoryRepository(db: AppDb): InventoryRepositoryPort {
               expiresAt: values.expiresAt,
               updatedAt: values.updatedAt,
             },
-          });
+          })
+          .run();
       });
     },
 

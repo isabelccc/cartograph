@@ -15,6 +15,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import type { Request } from "express";
+
 import type { AppContext } from "./app.js";
 import { createApp } from "./app.js";
 import { createRootLogger } from "./config/logger.js";
@@ -23,6 +25,10 @@ import { parseEnv } from "./config/env.schema.js";
 import { createHttpServer } from "./http/server.js";
 import { loadPlugins } from "./plugins.manifest.js";
 import { openDrizzleSqlite } from "../../../packages/persistence-drizzle/src/client.js";
+import { createMetrics } from "../../../packages/observability/src/metrics.js";
+import { createTracing } from "../../../packages/observability/src/tracing.js";
+import { createAuditLog } from "../../../packages/observability/src/audit-log.js";
+import { createOidcVerifier } from "../../../packages/authz/src/oidc.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const migrationsFolder = path.join(repoRoot, "packages/persistence-drizzle/src/migrations");
@@ -31,13 +37,31 @@ export async function main(): Promise<void> {
   const env = parseEnv();
   const logger = createRootLogger({ service: "core-api" });
   const sqlite = openDrizzleSqlite(env.databasePath);
+  const metrics = createMetrics();
+  const tracing = createTracing();
+  const auditLog = createAuditLog();
+  const oidcVerifier =
+    env.oidcIssuer !== undefined && env.oidcAudience !== undefined && env.oidcJwksUrl !== undefined
+      ? createOidcVerifier({
+          issuer: env.oidcIssuer,
+          audience: env.oidcAudience,
+          jwksUrl: env.oidcJwksUrl,
+        })
+      : undefined;
 
   const context: AppContext = {
     logger,
     db: sqlite.db,
     featureFlags: createFeatureFlags(env.featureFlags),
-    resolveTenant() {
-      return null;
+    metrics,
+    tracing,
+    auditLog,
+    resolveTenant(req: Request) {
+      const raw = req.header("x-tenant-id");
+      if (raw !== undefined && raw.trim() !== "") {
+        return raw.trim();
+      }
+      return env.defaultTenantId ?? null;
     },
     dispose: async () => {
       sqlite.close();
@@ -50,6 +74,18 @@ export async function main(): Promise<void> {
     context,
     applyMigrationsOnStart: env.applyMigrationsOnStart,
     migrationsFolder,
+    adminApiKey: env.adminApiKey,
+    stripeSecretKey: env.stripeSecretKey,
+    stripeWebhookSecret: env.stripeWebhookSecret,
+    shopApiKey: env.shopApiKey,
+    corsOrigin: env.corsOrigin,
+    promotionDiscountBps: env.promotionDiscountBps,
+    rateLimitPerMinute: env.rateLimitPerMinute,
+    oidcVerifier,
+    redisUrl: env.redisUrl,
+    meiliUrl: env.meiliUrl,
+    meiliKey: env.meiliKey,
+    shippingApiKey: env.shippingApiKey,
   });
   const http = createHttpServer(created, { port: env.port });
 

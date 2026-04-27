@@ -1,16 +1,15 @@
 /**
  * Plugin entry: payment-stripe.
  *
- * Requirements:
- * - Implements payment.provider.port only
- * - See plugin.json contributes.
- *
- * TODO:
- * - [ ] Export plugin factory implementing CommercePlugin
- *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Plugins
  */
-export function createPlugin(): never {
-  throw new Error("TODO: createPlugin — see file header JSDoc");
+import type { CommercePlugin } from "../../../packages/kernel/src/plugin.types.js";
+
+export function createPlugin(): CommercePlugin {
+  return {
+    name: "payment-stripe",
+    version: "0.0.0",
+  };
 }
 
+export { createStripePaymentProvider } from "./stripe.provider.js";

@@ -1,15 +1,18 @@
 /**
- * OTEL spans around workflows.
+ * OpenTelemetry-style tracing.
  *
- * Requirements:
- * - Propagate trace context to worker
- *
- * TODO:
- * - [ ] Implement with provider SDK or no-op
+ * Default: no-op span; wire OTEL in production.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — observability
  */
-export function createTracing(): never {
-  throw new Error("TODO: createTracing — see file header JSDoc");
-}
+export type Tracing = {
+  readonly startActiveSpan: <T>(name: string, fn: () => T) => T;
+};
 
+export function createTracing(): Tracing {
+  return {
+    startActiveSpan(_name, fn) {
+      return fn();
+    },
+  };
+}

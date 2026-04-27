@@ -1,14 +1,9 @@
 /**
  * Barrel exports for the commerce kernel package.
  *
- * Requirements:
- * - Re-export public surface only.
- *
- * TODO:
- * - [ ] Export bootstrap, CommerceKernel, plugin types.
- *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Kernel
  */
-export {};
-// TODO: export * from "./bootstrap.js";
-
+export { bootstrap } from "./bootstrap.js";
+export { createCommerceKernel, type CommerceKernel } from "./commerce-kernel.js";
+export { createKernelContainer } from "./di-container.js";
+export type { AsyncPluginHandler, CommercePlugin, CommercePluginRouteContext } from "./plugin.types.js";

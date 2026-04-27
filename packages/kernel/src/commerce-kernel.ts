@@ -1,17 +1,13 @@
 /**
- * Vendure-like runtime: plugin registry, lifecycle, merged config.
- *
- * Requirements:
- * - Ordered plugin lifecycle: configure → registerServices → registerWorkflows.
- * - Config merge policy documented (last-wins or explicit precedence).
- *
- * TODO:
- * - [ ] Implement `CommerceKernel` class or factory holding plugin list.
- * - [ ] Expose hooks for HTTP and worker to attach.
+ * Vendure-like runtime (skeleton).
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Kernel
  */
-export function createCommerceKernel(): never {
-  throw new Error("TODO: createCommerceKernel — see file header JSDoc");
-}
+export type CommerceKernel = {
+  readonly name: "cartograph-kernel";
+  readonly version: string;
+};
 
+export function createCommerceKernel(): CommerceKernel {
+  return { name: "cartograph-kernel", version: "0.0.0" };
+}

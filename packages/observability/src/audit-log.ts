@@ -1,15 +1,16 @@
 /**
  * Append-only admin audit trail.
  *
- * Requirements:
- * - R-NF-6 PII policy
- *
- * TODO:
- * - [ ] Implement with provider SDK or no-op
+ * Default: no-op writer; plug storage or SIEM in production.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — observability
  */
-export function createAuditLog(): never {
-  throw new Error("TODO: createAuditLog — see file header JSDoc");
-}
+export type AuditLog = {
+  readonly append: (entry: { readonly action: string; readonly detail: Record<string, unknown> }) => void;
+};
 
+export function createAuditLog(): AuditLog {
+  return {
+    append() {},
+  };
+}

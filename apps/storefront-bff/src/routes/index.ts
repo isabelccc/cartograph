@@ -1,15 +1,13 @@
 /**
- * Storefront BFF route table placeholder.
- *
- * Requirements:
- * - Keep BFF free of domain rules; delegate to core-api.
- *
- * TODO:
- * - [ ] Export route registration function consumed by main.ts.
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Apps — storefront-bff
+ * Storefront BFF route registration.
  */
-export function registerStorefrontRoutes(): never {
-  throw new Error("TODO: registerStorefrontRoutes — see file header JSDoc");
-}
+import type { Express } from "express";
 
+export function registerStorefrontRoutes(app: Express): void {
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ ok: true, surface: "storefront-bff" });
+  });
+  app.get("/ready", (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+}

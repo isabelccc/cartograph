@@ -30,6 +30,7 @@ export function createRequireAdminApiKey(adminApiKey: string | undefined) {
       );
       return;
     }
+    req.actorKind = "admin";
     next();
   };
 }

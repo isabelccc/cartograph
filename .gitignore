@@ -24,6 +24,11 @@ out/
 
 # Test / coverage
 coverage/
+tests/e2e/e2e.sqlite
+tests/e2e/e2e.sqlite-*
+playwright-report/
+test-results/
+
 
 # Logs & OS
 *.log

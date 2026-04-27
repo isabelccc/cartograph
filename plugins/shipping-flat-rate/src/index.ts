@@ -1,15 +1,11 @@
 /**
- * Plugin entry: shipping-flat-rate.
- *
- * Requirements:
- * - See plugin.json contributes.
- *
- * TODO:
- * - [ ] Export plugin factory implementing CommercePlugin
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Plugins
+ * Flat-rate shipping plugin (stub).
  */
-export function createPlugin(): never {
-  throw new Error("TODO: createPlugin — see file header JSDoc");
-}
+import type { CommercePlugin } from "../../../packages/kernel/src/plugin.types.js";
 
+export function createPlugin(): CommercePlugin {
+  return {
+    name: "shipping-flat-rate",
+    version: "0.0.0",
+  };
+}

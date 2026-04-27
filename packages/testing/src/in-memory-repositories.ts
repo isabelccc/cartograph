@@ -1,15 +1,10 @@
 /**
- * In-memory fake repository implementations for unit tests.
- *
- * Requirements:
- * - Implement port interfaces from modules
- *
- * TODO:
- * - [ ] Map-based stores; simulate concurrency if needed
+ * In-memory fake repository implementations (placeholder map).
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Tests
  */
-export function createInMemoryRepositories(): never {
-  throw new Error("TODO: createInMemoryRepositories — see file header JSDoc");
+export function createInMemoryRepositories(): {
+  readonly stores: Map<string, Map<string, unknown>>;
+} {
+  return { stores: new Map() };
 }
-

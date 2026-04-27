@@ -1,17 +1,13 @@
 /**
- * Relay domain events from the outbox table to webhooks, search index, etc.
- *
- * Requirements:
- * - Coordinate with `events/outbox.relay`; consumers must be idempotent (`processed_events` or unique constraint).
- * - Failed deliveries must be retryable; exceed threshold → DLQ + alert.
- *
- * TODO:
- * - [ ] Poll or LISTEN/NOTIFY for unpublished outbox rows; send in batches.
- * - [ ] On success update `published_at` / status; on failure increment retry count.
- * - [ ] Support multiple subscribers (search, analytics, third-party webhooks).
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Events & outbox
+ * Outbox drain tick (SQLite). Swap `relayOutboxBatch` for a real broker when you add a queue.
  */
-export function registerOutboxDispatchProcessor(): never {
-  throw new Error("TODO: outbox-dispatch processor — see file header JSDoc");
+import type { AppDb } from "../../../../packages/persistence-drizzle/src/client.js";
+import { relayOutboxBatch } from "../../../../packages/events/src/outbox.relay.js";
+
+export async function runOutboxDispatchTick(
+  db: AppDb,
+  limit: number,
+  opts?: { readonly redisUrl?: string },
+): Promise<number> {
+  return relayOutboxBatch(db, limit, opts);
 }

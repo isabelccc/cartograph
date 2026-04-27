@@ -15,16 +15,15 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { orders } from "./orders.js";
 export const fulfillments = sqliteTable("fulfillments", {
   id: text("id").primaryKey(),
-  /** PII; unique login identifier in many systems */
   orderId: text("order_id")
-  .notNull()
-  .references(() => orders.id, { onDelete: "cascade" }),
-  /** PII */
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
   lines: text("lines").notNull(),
   status: text("status").notNull(),
   carrier: text("carrier"),
   trackingNumber: text("trackingNumber"),
   trackingUrl: text("trackingUrl"),
+  externalShipmentId: text("external_shipment_id"),
   shippedAt: text("shippedAt"),
   deliveredAt: text("deliveredAt"),
   createdAt: text("created_at").notNull(),

@@ -12,12 +12,27 @@ import {
   type OrderId,
 } from "../../../domain-contracts/src/index.js";
 import type { OrderRepositoryPort } from "../../../modules/order/order.repository.port.js";
-import type { Order, OrderLine } from "../../../modules/order/order.types.js";
+import type { Order, OrderLine, OrderStatus } from "../../../modules/order/order.types.js";
 import type { AppDb } from "../client.js";
 import { orderLines, orders } from "../schema/index.js";
 
 function money(amountMinor: string, currency: string): Money {
   return { amountMinor: BigInt(amountMinor), currency };
+}
+
+const ORDER_STATUSES: readonly OrderStatus[] = [
+  "placed",
+  "paid",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
+
+function parseOrderStatus(raw: string): OrderStatus {
+  if ((ORDER_STATUSES as readonly string[]).includes(raw)) {
+    return raw as OrderStatus;
+  }
+  return "placed";
 }
 
 function ensureOrderTables(db: AppDb): void {
@@ -80,7 +95,7 @@ function toOrderFromRows(
   return {
     id: toOrderId(head.id),
     customerId: head.customerId !== null ? toCustomerId(head.customerId) : undefined,
-    status: head.status === "cancelled" ? "cancelled" : "placed",
+    status: parseOrderStatus(head.status),
     currency: head.currency,
     subtotal: money(head.subtotalAmountMinor, head.currency),
     total: money(head.totalAmountMinor, head.currency),
@@ -101,9 +116,8 @@ export function createOrderRepository(db: AppDb): OrderRepositoryPort {
     },
 
     async save(order: Order): Promise<void> {
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(orders)
+      db.transaction((tx) => {
+        tx.insert(orders)
           .values({
             id: order.id,
             customerId: order.customerId ?? null,
@@ -124,20 +138,23 @@ export function createOrderRepository(db: AppDb): OrderRepositoryPort {
               totalAmountMinor: order.total.amountMinor.toString(),
               updatedAt: order.updatedAt,
             },
-          });
+          })
+          .run();
 
-        await tx.delete(orderLines).where(eq(orderLines.orderId, order.id));
+        tx.delete(orderLines).where(eq(orderLines.orderId, order.id)).run();
         for (const line of order.lines) {
-          await tx.insert(orderLines).values({
-            id: line.id,
-            orderId: order.id,
-            productId: line.productId,
-            variantId: line.variantId,
-            title: line.title,
-            quantity: line.quantity.toString(),
-            unitAmountMinor: line.unitPrice.amountMinor.toString(),
-            lineTotalMinor: line.lineTotal.amountMinor.toString(),
-          });
+          tx.insert(orderLines)
+            .values({
+              id: line.id,
+              orderId: order.id,
+              productId: line.productId,
+              variantId: line.variantId,
+              title: line.title,
+              quantity: line.quantity.toString(),
+              unitAmountMinor: line.unitPrice.amountMinor.toString(),
+              lineTotalMinor: line.lineTotal.amountMinor.toString(),
+            })
+            .run();
         }
       });
     },

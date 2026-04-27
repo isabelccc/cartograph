@@ -64,9 +64,8 @@ export function createTaxRepository(db: AppDb): TaxRepositoryPort {
       if (!Number.isFinite(rate.rateBps) || rate.rateBps < 0) {
         throw new Error("tax rateBps must be a non-negative integer");
       }
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(taxRates)
+      db.transaction((tx) => {
+        tx.insert(taxRates)
           .values({
             id: rate.id,
             name: rate.name,
@@ -85,7 +84,8 @@ export function createTaxRepository(db: AppDb): TaxRepositoryPort {
               isActive: String(rate.isActive),
               updatedAt: rate.updatedAt,
             },
-          });
+          })
+          .run();
       });
     },
   };

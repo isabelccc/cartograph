@@ -6,13 +6,21 @@
     "db:generate": "cd packages/persistence-drizzle && drizzle-kit generate",
     "db:push": "cd packages/persistence-drizzle && drizzle-kit push",
     "db:studio": "cd packages/persistence-drizzle && drizzle-kit studio",
+    "db:seed": "npx tsx scripts/seed-mvp.ts",
+    "db:migrate": "node scripts/prod-migrate.mjs",
+    "smoke": "npx tsx scripts/smoke-mvp.ts",
     "dev:api": "cd apps/core-api && npm run dev",
     "dev:worker": "cd apps/worker && npm run dev",
     "dev:admin": "cd apps/admin-bff && npm run dev",
+    "dev:storefront": "cd apps/storefront-bff && npm run dev",
     "build": "tsc -p tsconfig.json --noEmit",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:contract": "tsx --test tests/contract/order.lifecycle.contract.ts tests/contract/storefront-api.contract.ts tests/contract/cost-estimation.intake.contract.ts tests/contract/authz.contract.ts tests/contract/return.workflow.contract.ts tests/contract/queue.integration.contract.ts",
+    "e2e": "npx playwright test",
+    "e2e:ui": "npx playwright test --ui"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.0",
     "drizzle-kit": "^0.31.10",
@@ -21,8 +29,13 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
+    "bullmq": "^5.76.2",
     "drizzle-orm": "^0.45.2",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.4.1",
+    "ioredis": "^5.10.1",
+    "jose": "^6.2.3",
+    "meilisearch": "^0.57.0",
     "stripe": "^18.0.0",
     "zod": "^4.3.6"
   }

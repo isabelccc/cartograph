@@ -60,9 +60,8 @@ export function createCustomerRepository(db: AppDb): CustomerRepositoryPort {
     },
 
     async save(customer: Customer): Promise<void> {
-      await db.transaction(async (tx) => {
-        await tx
-          .insert(customers)
+      db.transaction((tx) => {
+        tx.insert(customers)
           .values({
             id: customer.id,
             email: customer.email,
@@ -81,7 +80,8 @@ export function createCustomerRepository(db: AppDb): CustomerRepositoryPort {
               status: customer.status,
               updatedAt: customer.updatedAt,
             },
-          });
+          })
+          .run();
       });
     },
   };

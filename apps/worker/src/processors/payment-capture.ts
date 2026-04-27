@@ -1,17 +1,30 @@
 /**
- * Asynchronous payment capture and reconciliation.
- *
- * Requirements:
- * - Align with the `payment` module state machine; avoid conflicting dual writes with HTTP handlers (single write path).
- * - Calls to the payment provider must use idempotency keys (R-NF-1).
- *
- * TODO:
- * - [ ] Consume “pending capture” jobs; call `payment.provider.port`.
- * - [ ] On success/failure update payment aggregate and append outbox (e.g. OrderPaid).
- * - [ ] Reconciliation job: pull provider reports, diff against local payments, log discrepancies to audit trail.
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — payment module, Workflows
+ * Demo async capture: transition `authorized` → `captured`. Real deployments call the PSP capture API here.
  */
-export function registerPaymentCaptureProcessor(): never {
-  throw new Error("TODO: payment-capture processor — see file header JSDoc");
+import type { AppDb } from "../../../../packages/persistence-drizzle/src/client.js";
+import { createPaymentRepository } from "../../../../packages/persistence-drizzle/src/repositories/payment.repository.js";
+import Stripe from "stripe";
+
+export async function runPaymentCaptureTick(
+  db: AppDb,
+  opts?: { readonly stripeSecretKey?: string },
+): Promise<number> {
+  const repo = createPaymentRepository(db);
+  const authorized = await repo.findByStatus("authorized");
+  const now = new Date().toISOString();
+  const stripe =
+    opts?.stripeSecretKey !== undefined
+      ? new Stripe(opts.stripeSecretKey, { apiVersion: "2025-08-27.basil" })
+      : undefined;
+  for (const p of authorized) {
+    if (stripe !== undefined && typeof p.providerRef === "string" && p.providerRef.startsWith("pi_")) {
+      await stripe.paymentIntents.capture(p.providerRef);
+    }
+    await repo.save({
+      ...p,
+      status: "captured",
+      updatedAt: now,
+    });
+  }
+  return authorized.length;
 }

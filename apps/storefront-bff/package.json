@@ -1,0 +1,9 @@
+{
+  "name": "@platform/storefront-bff",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx src/main.ts",
+    "start": "npx tsx src/main.ts"
+  }
+}

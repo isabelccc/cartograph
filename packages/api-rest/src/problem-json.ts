@@ -25,6 +25,7 @@ export function statusForDomainCode(code: string): number {
   if (code.includes("NOT_CONFIGURED")) return 503;
   if (code.endsWith("_UNAVAILABLE")) return 503;
   if (code.endsWith("_CONFLICT") || code.includes("_CONFLICT_")) return 409;
+  if (code === "ORDER_STATE_INVALID") return 409;
   if (code.includes("FORBIDDEN") || code.includes("NOT_ALLOWED")) return 403;
   if (code.includes("UNAUTHORIZED") || code.includes("UNAUTHENTICATED")) return 401;
   if (

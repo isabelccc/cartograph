@@ -1,15 +1,12 @@
 /**
- * Drizzle table definitions: outbox.
- *
- * Requirements:
- * - Indexes on hot paths: orders.customer_id, payments.order_id, outbox.published_at (per SERIES-B).
- * - R-NF-6: document PII columns.
- *
- * TODO:
- * - [ ] Define sqliteTable/pgTable matching domain-contracts.
- * - [ ] Export from schema/index.ts
- *
- * @see ../../../../docs/SERIES-B-PLATFORM.md — Persistence
+ * Outbox table for reliable side-effects (domain events → webhooks, search, etc.).
  */
-export {};
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+export const outbox = sqliteTable("outbox", {
+  id: text("id").primaryKey(),
+  topic: text("topic").notNull(),
+  payload: text("payload").notNull(),
+  createdAt: text("created_at").notNull(),
+  publishedAt: text("published_at"),
+});

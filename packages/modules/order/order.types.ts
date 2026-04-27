@@ -15,7 +15,12 @@ import type {
 
 export type { CustomerId, Money, OrderId, ProductId, VariantId };
 
-export type OrderStatus = "placed" | "cancelled";
+export type OrderStatus =
+  | "placed"
+  | "paid"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 export type OrderLine = {
   readonly id: string;

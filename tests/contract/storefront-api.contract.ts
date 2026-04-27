@@ -1,15 +1,12 @@
 /**
- * Contract tests: OpenAPI or GraphQL schema vs implementation.
- *
- * Requirements:
- * - Run in CI against running core-api or mock
- *
- * TODO:
- * - [ ] Schemathesis or openapi-diff
- *
- * @see ../../docs/SERIES-B-PLATFORM.md — Tests — contract
+ * Stable path versioning for storefront/admin surfaces.
  */
-export function runStorefrontContractSuite(): never {
-  throw new Error("TODO: runStorefrontContractSuite — see file header JSDoc");
-}
+import assert from "node:assert/strict";
+import test from "node:test";
 
+import { API_VERSION, withApiVersion } from "../../apps/core-api/src/http/versioning.js";
+
+test("storefront API path uses /store/v1", () => {
+  assert.equal(API_VERSION, "v1");
+  assert.equal(withApiVersion("/store"), "/store/v1");
+});
