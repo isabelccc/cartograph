@@ -22,6 +22,7 @@ const DEFAULT_TYPE = "about:blank";
 /** Heuristic HTTP status from stable domain codes (extend as codes grow). */
 export function statusForDomainCode(code: string): number {
   if (code.endsWith("_NOT_FOUND")) return 404;
+  if (code.includes("NOT_CONFIGURED")) return 503;
   if (code.endsWith("_UNAVAILABLE")) return 503;
   if (code.endsWith("_CONFLICT") || code.includes("_CONFLICT_")) return 409;
   if (code.includes("FORBIDDEN") || code.includes("NOT_ALLOWED")) return 403;

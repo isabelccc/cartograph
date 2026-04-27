@@ -23,18 +23,29 @@ import type { AppDb } from "../../../packages/persistence-drizzle/src/client.js"
 import { createCatalogRepository } from "../../../packages/persistence-drizzle/src/repositories/catalog.repository.js";
 import { createCartRepository } from "../../../packages/persistence-drizzle/src/repositories/cart.repository.js";
 import { createOrderRepository } from "../../../packages/persistence-drizzle/src/repositories/order.repository.js";
+import { createInventoryRepository } from "../../../packages/persistence-drizzle/src/repositories/inventory.repository.js";
+import { createPaymentRepository } from "../../../packages/persistence-drizzle/src/repositories/payment.repository.js";
+import { createTaxRepository } from "../../../packages/persistence-drizzle/src/repositories/tax.repository.js";
 import { createCatalogService } from "../../../packages/modules/catalog/catalog.service.js";
 import { createCartService } from "../../../packages/modules/cart/cart.service.js";
 import { createOrderService } from "../../../packages/modules/order/order.service.js";
+import { createInventoryService } from "../../../packages/modules/inventory/inventory.service.js";
+import { createPaymentService } from "../../../packages/modules/payment/payment.service.js";
+import { createTaxService } from "../../../packages/modules/tax/tax.service.js";
 import {
   toCartId,
+  toOrderId,
+  toPaymentId,
   toProductId,
   toSessionId,
   toVariantId,
 } from "../../../packages/domain-contracts/src/ids.js";
+import type { Payment, PaymentStatus } from "../../../packages/modules/payment/payment.types.js";
 import type { CommercePluginRouteContext } from "../../../packages/kernel/src/plugin.types.js";
 import { DomainError } from "../../../packages/domain-contracts/src/errors.js";
 import { applyPendingMigrations } from "./bootstrap/migrations.js";
+import { createRequireAdminApiKey } from "./http/admin-api-key.js";
+import { addStripeShopPaymentIntentPost, createStripeWebhookHandler } from "./http/stripe.js";
 import { withApiVersion } from "./http/versioning.js";
 import { readyHandler } from "./http/ready.js";
 import { requestContextMiddleware } from "./http/request-context.js";
@@ -74,6 +85,12 @@ export interface CreateAppOptions {
   migrationsFolder?: string;
   /** When true, apply pending migrations in {@link CreatedApp.ready} (sync, before listen). */
   applyMigrationsOnStart?: boolean;
+  /** Set `ADMIN_API_KEY` env — required for protected admin routes. */
+  adminApiKey?: string;
+  /** Stripe `sk_…` for `POST /store/.../payments/stripe/intent`. */
+  stripeSecretKey?: string;
+  /** Stripe webhook signing secret for `POST /webhooks/stripe`. */
+  stripeWebhookSecret?: string;
 }
 
 /** Static info for logs, `/health`, and debugging — not for request routing. */
@@ -139,15 +156,6 @@ export function createApp(options: CreateAppOptions): CreatedApp {
 
   app.locals.ctx = options.context;
 
-  app.use(express.json({ limit: "1mb" }));
-  app.use(requestContextMiddleware());
-  app.get("/ready", asyncHandler(readyHandler));
-
-  const adminMount = withApiVersion(adminPath);
-  const shopMount = withApiVersion(shopPath);
-
-  const adminRouter = express.Router();
-  const shopRouter = express.Router();
   const db = options.context.db;
   const catalogRepo = db !== undefined ? createCatalogRepository(db) : undefined;
   const cartRepo = db !== undefined ? createCartRepository(db) : undefined;
@@ -162,6 +170,43 @@ export function createApp(options: CreateAppOptions): CreatedApp {
     orderRepo !== undefined && cartRepo !== undefined
       ? createOrderService({ orderRepo, cartRepo })
       : undefined;
+  const inventoryRepo = db !== undefined ? createInventoryRepository(db) : undefined;
+  const paymentRepo = db !== undefined ? createPaymentRepository(db) : undefined;
+  const taxRepo = db !== undefined ? createTaxRepository(db) : undefined;
+  const inventoryService =
+    inventoryRepo !== undefined ? createInventoryService({ inventoryRepo }) : undefined;
+  const paymentService =
+    paymentRepo !== undefined ? createPaymentService({ paymentRepo }) : undefined;
+  const taxService = taxRepo !== undefined ? createTaxService({ taxRepo }) : undefined;
+
+  if (options.stripeWebhookSecret && paymentService !== undefined) {
+    app.post(
+      "/webhooks/stripe",
+      express.raw({ type: "application/json" }),
+      asyncHandler(
+        createStripeWebhookHandler({
+          webhookSecret: options.stripeWebhookSecret,
+          paymentService,
+          logger: options.context.logger,
+        }),
+      ),
+    );
+  }
+
+  app.use(express.json({ limit: "1mb" }));
+  app.use(requestContextMiddleware());
+  app.get("/ready", asyncHandler(readyHandler));
+
+  const adminMount = withApiVersion(adminPath);
+  const shopMount = withApiVersion(shopPath);
+
+  const adminRouter = express.Router();
+  const shopRouter = express.Router();
+
+  const requireAdmin = createRequireAdminApiKey(options.adminApiKey);
+  adminRouter.get("/status", requireAdmin, (_req, res) => {
+    res.status(200).json({ ok: true, protected: true, surface: "admin" });
+  });
 
   adminRouter.get("/health", (_req, res) => {
     res.status(200).json({ ok: true, surface: "admin" });
@@ -235,6 +280,129 @@ export function createApp(options: CreateAppOptions): CreatedApp {
       asyncHandler(async (req, res) => {
         const order = await orderService.placeFromCart(toCartId(String(req.body.cartId)));
         res.status(201).json(order);
+      }),
+    );
+  }
+
+  if (taxService !== undefined) {
+    shopRouter.get(
+      "/tax/rates",
+      asyncHandler(async (_req, res) => {
+        const items = await taxService.listActiveRates();
+        res.status(200).json({ items });
+      }),
+    );
+    shopRouter.post(
+      "/tax/estimate",
+      asyncHandler(async (req, res) => {
+        const countryCode = String(req.body?.countryCode ?? "").toUpperCase();
+        if (countryCode.length !== 2) {
+          throw new DomainError("VALIDATION_ERROR", "countryCode must be ISO 3166-1 alpha-2");
+        }
+        const currency = String(req.body?.currency ?? "USD").toUpperCase();
+        const amountMinor = BigInt(String(req.body?.amountMinor ?? "0"));
+        const out = await taxService.estimateForCountry({
+          countryCode,
+          taxable: { amountMinor, currency },
+        });
+        res.status(200).json({
+          lines: out.lines.map((l) => ({
+            rateName: l.rateName,
+            rateBps: l.rateBps,
+            tax: { amountMinor: l.tax.amountMinor.toString(), currency: l.tax.currency },
+          })),
+          totalTax: {
+            amountMinor: out.totalTax.amountMinor.toString(),
+            currency: out.totalTax.currency,
+          },
+        });
+      }),
+    );
+  }
+
+  if (paymentService !== undefined) {
+    shopRouter.get(
+      "/orders/:orderId/payments",
+      asyncHandler(async (req, res) => {
+        const items = await paymentService.findByOrderId(toOrderId(String(req.params.orderId)));
+        res.status(200).json({ items });
+      }),
+    );
+    shopRouter.post(
+      "/payments",
+      asyncHandler(async (req, res) => {
+        const now = new Date().toISOString();
+        const rawPayId = req.body?.id;
+        const id = toPaymentId(
+          typeof rawPayId === "string" && rawPayId.length > 0 ? rawPayId : randomUUID(),
+        );
+        const orderId = toOrderId(String(req.body?.orderId));
+        const status = String(req.body?.status ?? "pending") as PaymentStatus;
+        const amount = {
+          amountMinor: BigInt(String(req.body?.amount?.amountMinor ?? "0")),
+          currency: String(req.body?.amount?.currency ?? "USD").toUpperCase(),
+        };
+        const payment: Payment = {
+          id,
+          orderId,
+          status,
+          amount,
+          providerRef:
+            typeof req.body?.providerRef === "string" && req.body.providerRef.length > 0
+              ? req.body.providerRef
+              : null,
+          metadata:
+            req.body?.metadata !== undefined &&
+            req.body?.metadata !== null &&
+            typeof req.body?.metadata === "object" &&
+            !Array.isArray(req.body?.metadata)
+              ? (req.body.metadata as Record<string, unknown>)
+              : {},
+          createdAt: typeof req.body?.createdAt === "string" ? req.body.createdAt : now,
+          updatedAt: typeof req.body?.updatedAt === "string" ? req.body.updatedAt : now,
+        };
+        const saved = await paymentService.save(payment);
+        res.status(201).json(saved);
+      }),
+    );
+  }
+
+  if (inventoryService !== undefined) {
+    shopRouter.get(
+      "/inventory/variants/:variantId/atp",
+      asyncHandler(async (req, res) => {
+        const atp = await inventoryService.getAvailableToPromise(
+          toVariantId(String(req.params.variantId)),
+        );
+        res.status(200).json({ availableToPromise: atp.toString() });
+      }),
+    );
+    shopRouter.post(
+      "/inventory/reserve",
+      asyncHandler(async (req, res) => {
+        const expiresAt = String(req.body?.expiresAt ?? "");
+        if (expiresAt.trim() === "") {
+          throw new DomainError("VALIDATION_ERROR", "expiresAt is required");
+        }
+        const linesRaw = req.body?.lines;
+        if (!Array.isArray(linesRaw)) {
+          throw new DomainError("VALIDATION_ERROR", "lines must be an array");
+        }
+        const orderIdRaw = req.body?.orderId;
+        const orderId =
+          orderIdRaw === null || orderIdRaw === undefined || String(orderIdRaw) === ""
+            ? null
+            : toOrderId(String(orderIdRaw));
+        const lines = linesRaw.map((line: { variantId?: unknown; quantity?: unknown }) => ({
+          variantId: toVariantId(String(line?.variantId)),
+          quantity: BigInt(String(line?.quantity ?? "0")),
+        }));
+        const reservation = await inventoryService.reserve({
+          orderId,
+          lines,
+          expiresAt,
+        });
+        res.status(201).json(reservation);
       }),
     );
   }

@@ -35,9 +35,16 @@ export type FulfillmentId = string & { readonly __brand: "FulfillmentId" };
 export type ProductIntakeId = string & { readonly __brand: "ProductIntakeId" };
 
 export type SessionId = string & { readonly __brand: "SessionId" };
+
+export type PaymentId = string & { readonly __brand: "PaymentId" };
+
 /** Cast after validating shape at HTTP/DB boundaries (see TODO above). */
 export function toOrderId(id: string): OrderId {
   return id as OrderId;
+}
+
+export function toPaymentId(id: string): PaymentId {
+  return id as PaymentId;
 }
 
 export function toCustomerId(id: string): CustomerId {

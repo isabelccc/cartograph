@@ -1,5 +1,5 @@
 {
-  "name": "@platform/worker",
+  "name": "@platform/admin-bff",
   "private": true,
   "type": "module",
   "scripts": {

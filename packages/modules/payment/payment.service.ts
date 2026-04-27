@@ -1,17 +1,33 @@
 /**
  * payment — payment.service (service)
  *
- * Requirements:
- * - Partial capture; refund idempotency
- * - R-DOM-1: Services use ports, not Drizzle.
- * - R-DOM-3 where applicable: state machines centralized.
- *
- * TODO:
- * - [ ] orchestrate authorize/capture/refund
+ * Persists payment rows; card networks / PSPs plug in later via `PaymentProviderPort`.
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Domain modules — payment
  */
-export function createPaymentService(): never {
-  throw new Error("TODO: createPaymentService — see file header JSDoc");
+import type { OrderId, PaymentId } from "../../domain-contracts/src/index.js";
+import type { PaymentRepositoryPort } from "./payment.repository.port.js";
+import type { Payment } from "./payment.types.js";
+
+export type PaymentServiceDeps = {
+  readonly paymentRepo: PaymentRepositoryPort;
+};
+
+export interface PaymentService {
+  getById(id: PaymentId): Promise<Payment | null>;
+  getByProviderRef(providerRef: string): Promise<Payment | null>;
+  findByOrderId(orderId: OrderId): Promise<readonly Payment[]>;
+  save(payment: Payment): Promise<Payment>;
 }
 
+export function createPaymentService(deps: PaymentServiceDeps): PaymentService {
+  return {
+    getById: (id) => deps.paymentRepo.getById(id),
+    getByProviderRef: (ref) => deps.paymentRepo.getByProviderRef(ref),
+    findByOrderId: (orderId) => deps.paymentRepo.findByOrderId(orderId),
+    async save(payment) {
+      await deps.paymentRepo.save(payment);
+      return payment;
+    },
+  };
+}

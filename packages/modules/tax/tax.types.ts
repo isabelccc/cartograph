@@ -1,15 +1,22 @@
 /**
  * tax — tax.types (types)
  *
- * Requirements:
- * - Nexus-ready
- * - R-DOM-1: Services use ports, not Drizzle.
- * - R-DOM-3 where applicable: state machines centralized.
- *
- * TODO:
-
- *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Domain modules — tax
  */
-export type TaxRateId = string;
+export type TaxRateId = string & { readonly __brand: "TaxRateId" };
 
+export function toTaxRateId(id: string): TaxRateId {
+  return id as TaxRateId;
+}
+
+export type TaxRate = {
+  readonly id: TaxRateId;
+  readonly name: string;
+  /** ISO 3166-1 alpha-2, uppercased. */
+  readonly countryCode: string;
+  /** Basis points (e.g. 825 = 8.25%). */
+  readonly rateBps: number;
+  readonly isActive: boolean;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};

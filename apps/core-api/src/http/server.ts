@@ -52,7 +52,18 @@ export function createHttpServer(
       await createdApp.ready();
       await new Promise<void>((resolve, reject) => {
         server = createdApp.express.listen(port, host, () => resolve());
-        server.on("error", reject);
+        server.on("error", (err: NodeJS.ErrnoException) => {
+          if (err.code === "EADDRINUSE") {
+            reject(
+              new Error(
+                `Port ${port} is already in use on ${host}. ` +
+                  `Set PORT to a free port (e.g. PORT=3001 npm run dev) or stop the other listener (macOS: lsof -i :${port}).`,
+              ),
+            );
+            return;
+          }
+          reject(err);
+        });
       });
     },
 

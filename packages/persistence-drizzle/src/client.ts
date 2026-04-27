@@ -6,6 +6,8 @@
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Persistence
  */
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
@@ -29,6 +31,10 @@ export interface DrizzleSqliteHandle {
  * @param databasePath e.g. `:memory:` or `./data.sqlite`
  */
 export function openDrizzleSqlite(databasePath: string): DrizzleSqliteHandle {
+  if (databasePath !== ":memory:") {
+    const dir = path.dirname(path.resolve(databasePath));
+    mkdirSync(dir, { recursive: true });
+  }
   const sqlite = new Database(databasePath);
   const db = drizzle(sqlite, { schema });
   return {

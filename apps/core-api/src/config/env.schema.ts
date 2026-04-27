@@ -36,6 +36,15 @@ const schema = z.object({
   MIGRATIONS_ON_START: z.string().optional(),
   /** When truthy, skip loading the `core-defaults` plugin. */
   PLUGIN_CORE_DEFAULTS_DISABLED: z.string().optional(),
+  /**
+   * Shared secret for `GET /admin/.../status` and other admin-only routes.
+   * Send `Authorization: Bearer <key>` or `X-Admin-Key: <key>`.
+   */
+  ADMIN_API_KEY: z.string().optional(),
+  /** Stripe secret key (`sk_…`) for PaymentIntents. */
+  STRIPE_SECRET_KEY: z.string().optional(),
+  /** Webhook signing secret (`whsec_…`) for `POST /webhooks/stripe`. */
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type Env = {
@@ -45,6 +54,9 @@ export type Env = {
   readonly featureFlags: Record<string, boolean>;
   readonly applyMigrationsOnStart: boolean;
   readonly pluginCoreDefaultsDisabled: boolean;
+  readonly adminApiKey: string | undefined;
+  readonly stripeSecretKey: string | undefined;
+  readonly stripeWebhookSecret: string | undefined;
 };
 
 /**
@@ -63,6 +75,17 @@ export function parseEnv(env: NodeJS.ProcessEnv = process.env): Env {
       ? optTruthy(p.MIGRATIONS_ON_START)
       : p.NODE_ENV === "development";
 
+  const adminApiKey =
+    p.ADMIN_API_KEY !== undefined && p.ADMIN_API_KEY.trim() !== "" ? p.ADMIN_API_KEY.trim() : undefined;
+  const stripeSecretKey =
+    p.STRIPE_SECRET_KEY !== undefined && p.STRIPE_SECRET_KEY.trim() !== ""
+      ? p.STRIPE_SECRET_KEY.trim()
+      : undefined;
+  const stripeWebhookSecret =
+    p.STRIPE_WEBHOOK_SECRET !== undefined && p.STRIPE_WEBHOOK_SECRET.trim() !== ""
+      ? p.STRIPE_WEBHOOK_SECRET.trim()
+      : undefined;
+
   return {
     nodeEnv: p.NODE_ENV,
     port: p.PORT,
@@ -73,5 +96,8 @@ export function parseEnv(env: NodeJS.ProcessEnv = process.env): Env {
     },
     applyMigrationsOnStart,
     pluginCoreDefaultsDisabled: optTruthy(p.PLUGIN_CORE_DEFAULTS_DISABLED),
+    adminApiKey,
+    stripeSecretKey,
+    stripeWebhookSecret,
   };
 }
