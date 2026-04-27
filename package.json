@@ -9,6 +9,8 @@
     "db:seed": "npx tsx scripts/seed-mvp.ts",
     "db:migrate": "node scripts/prod-migrate.mjs",
     "smoke": "npx tsx scripts/smoke-mvp.ts",
+    "smoke:deep": "SMOKE_DEEP=1 SMOKE_STRICT_SEED=1 npx tsx scripts/smoke-mvp.ts",
+    "smoke:local": "node scripts/smoke-with-server.mjs",
     "dev:api": "cd apps/core-api && npm run dev",
     "dev:worker": "cd apps/worker && npm run dev",
     "dev:admin": "cd apps/admin-bff && npm run dev",
