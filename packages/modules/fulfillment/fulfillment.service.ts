@@ -13,6 +13,7 @@
 import type { FulfillmentCarrierPort } from "./fulfillment.carrier.port.js";
 import type { FulfillmentRepoPort } from "./fulfillment.repository.port.js";
 import type {
+  CarrierLabelReference,
   CarrierTrackingSnapshot,
   Fulfillment,
   FulfillmentId,
@@ -31,7 +32,7 @@ export interface FulfillmentService {
   getFulfillmentById(id: FulfillmentId): Promise<Fulfillment | null>;
   listFulfillmentsByOrderId(orderId: OrderId): Promise<readonly Fulfillment[]>;
   purchaseShippingLabel(input: PurchaseLabelInput): Promise<PurchaseLabelResult>;
-  voidShippingLabel(fulfillmentId: FulfillmentId): Promise<void>;
+  voidShippingLabel(ref: CarrierLabelReference): Promise<void>;
   getCarrierTrackingSnapshot(
     trackingNumber: string,
     carrierCode?: string,
@@ -39,20 +40,75 @@ export interface FulfillmentService {
   syncFulfillmentFromCarrier(fulfillmentId: FulfillmentId): Promise<Fulfillment | null>;
 }
 
-export function createFulfillmentService(_deps: FulfillmentServiceDeps) {
-  
+export function createFulfillmentService(deps: FulfillmentServiceDeps): FulfillmentService {
   return {
-    async getFulfillmentById(id: FulfillmentId): Promise<Fulfillment | null>{
-    return _deps.fulfillmentRepo.getById(id);
+    async getFulfillmentById(id: FulfillmentId): Promise<Fulfillment | null> {
+      return deps.fulfillmentRepo.getById(id);
     },
-    async listFulfillmentsByOrderId(orderId:OrderId):Promise<readonly Fulfillment[]>{
-        return _deps.fulfillmentRepo.listByOrderId(orderId);
 
+    async listFulfillmentsByOrderId(orderId: OrderId): Promise<readonly Fulfillment[]> {
+      return deps.fulfillmentRepo.listByOrderId(orderId);
     },
-    async purchaseShippingLabel(input: PurchaseLabelInput):Promise<PurchaseLabelResult>{
-      return _deps.fulfillmentCarrier.purchaseLabel(input);
-    },
-    async voidShippingLabel(fulfillmentId:FulfillmentId)
 
-  }
+    async purchaseShippingLabel(input: PurchaseLabelInput): Promise<PurchaseLabelResult> {
+      const label = await deps.fulfillmentCarrier.purchaseLabel(input);
+      const fulfillment = await deps.fulfillmentRepo.getById(input.fulfillmentId);
+
+      if (fulfillment !== null) {
+        await deps.fulfillmentRepo.save({
+          ...fulfillment,
+          status: "processing",
+          carrier: label.carrier,
+          trackingNumber: label.trackingNumber,
+          trackingUrl: label.trackingUrl,
+          externalShipmentId: label.externalShipmentId,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      return label;
+    },
+
+    async voidShippingLabel(ref: CarrierLabelReference): Promise<void> {
+      return deps.fulfillmentCarrier.voidLabel(ref);
+    },
+
+    async getCarrierTrackingSnapshot(
+      trackingNumber: string,
+      carrierCode?: string,
+    ): Promise<CarrierTrackingSnapshot | null> {
+      return deps.fulfillmentCarrier.getByTracking(trackingNumber, carrierCode);
+    },
+
+    async syncFulfillmentFromCarrier(fulfillmentId: FulfillmentId): Promise<Fulfillment | null> {
+      const fulfillment = await deps.fulfillmentRepo.getById(fulfillmentId);
+
+      if (fulfillment === null) {
+        return null;
+      }
+
+      if (fulfillment.trackingNumber === null) {
+        return fulfillment;
+      }
+
+      const snapshot = await deps.fulfillmentCarrier.getByTracking(
+        fulfillment.trackingNumber,
+        fulfillment.carrier ?? undefined,
+      );
+
+      if (snapshot === null) {
+        return fulfillment;
+      }
+
+      const updated: Fulfillment = {
+        ...fulfillment,
+        status: snapshot.deliveredAt === null ? fulfillment.status : "delivered",
+        deliveredAt: snapshot.deliveredAt ?? fulfillment.deliveredAt,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await deps.fulfillmentRepo.save(updated);
+      return updated;
+    },
+  };
 }

@@ -11,14 +11,14 @@
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Domain modules — inventory
  */
-import type { OrderId } from "../order/order.types.js";
-import type { VariantId } from "../cart/cart.types.js";
+
+import type { VariantId, OrderId} from "../../domain-contracts/src/index.js"
 export type Sku = string;
 export type InventoryReservationId = string & {
     readonly __brand: "InventoryReservationId";
   };
 
-export type InventoryRepositoryStatus = | "active" | "commited"|"released"| "expired"
+export type InventoryReservationStatus = | "active" | "committed"|"released"| "expired"
 
 export type StockLevel = {
     readonly variantId:VariantId;
@@ -39,8 +39,8 @@ export type InventoryReservation = {
     readonly id:InventoryReservationId;
     readonly orderId:OrderId | null;
     readonly lines : readonly InventoryReservationLine[];
-    readonly status: InventoryRepositoryStatus;
-    readonly expiredAt: string;
+    readonly status: InventoryReservationStatus;
+    readonly expiresAt: string;
     readonly createdAt: string;
     readonly updatedAt: string;
 };
