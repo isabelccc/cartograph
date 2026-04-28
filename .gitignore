@@ -3,6 +3,9 @@ instruction.md
 Instruction.md
 INSTRUCTION.md
 
+# Local-only frontend/API developer docs (private onboarding)
+docs-private/
+
 # Dependencies
 node_modules/
 

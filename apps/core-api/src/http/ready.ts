@@ -1,5 +1,8 @@
 /**
- * Readiness probe: verifies SQLite responds (R-NF-2 / ops).
+ * **`GET /ready`** (also mounted under `/admin/v1/ready`, `/store/v1/ready`) — **readiness** not liveness.
+ *
+ * Runs `SELECT 1` on SQLite; **503** if DB missing or query fails (K8s should not route traffic).
+ * Deep dive: **`GET /health`** is cheaper (no DB ping) — see routers in `register-*-routes`.
  */
 import type { Request, Response } from "express";
 import type { AppDb } from "../../../../packages/persistence-drizzle/src/client.js";

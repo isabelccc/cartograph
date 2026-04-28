@@ -1,5 +1,12 @@
 /**
- * HTTP request context: requestId, tenantId, child logger (R-NF-2).
+ * **Per-request middleware** — runs early (after JSON parser) so all handlers share:
+ *
+ * - **`X-Request-Id`** (or generated UUID) echoed on response.
+ * - **`req.tenantId`** from `AppContext.resolveTenant(req)` — base for multi-tenant + admin RBAC.
+ * - **`req.actorKind`** starts `anonymous`; admin/shop/OIDC middleware may raise it.
+ * - **`req.log`** structured child logger; `finish` hook increments HTTP metrics.
+ *
+ * Deep dive: **tenant is null** until header/default resolver sets it — many admin routes then fail with `TENANT_REQUIRED`.
  */
 import { randomUUID } from "node:crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";

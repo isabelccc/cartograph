@@ -1,5 +1,13 @@
 /**
- * Stripe PaymentIntents: shop route + signed webhook to persist status.
+ * **Stripe integration** — two entry points only:
+ *
+ * 1. **`addStripeShopPaymentIntentPost`** — `POST /store/v1/payments/stripe/intent`
+ *    Creates Stripe PI + persists a **`pending`** `Payment` row (`providerRef` = PI id).
+ * 2. **`createStripeWebhookHandler`** — mounted in **`app.ts`** on **`POST /webhooks/stripe`** with **`express.raw`**
+ *    (must run **before** global `express.json`).
+ *
+ * Webhook updates `Payment` (`captured` / `failed` / `canceled`). On `payment_intent.succeeded`,
+ * optionally **`orderService.markPaid`** after amount/currency/order checks (idempotent if order already `paid`).
  */
 import { randomUUID } from "node:crypto";
 import type { Request, Response, Router } from "express";
@@ -9,6 +17,7 @@ import { toOrderId, toPaymentId } from "../../../../packages/domain-contracts/sr
 import type { PaymentService } from "../../../../packages/modules/payment/payment.service.js";
 import type { PaymentStatus } from "../../../../packages/modules/payment/payment.types.js";
 import type { OrderRepositoryPort } from "../../../../packages/modules/order/order.repository.port.js";
+import type { OrderService } from "../../../../packages/modules/order/order.service.js";
 import type { AsyncRequestHandler } from "../../../../packages/api-rest/src/async-handler.js";
 import type { RequestLogger } from "../config/logger.js";
 
@@ -80,8 +89,11 @@ export function createStripeWebhookHandler(opts: {
   webhookSecret: string;
   paymentService: PaymentService;
   logger: RequestLogger;
+  /** When set, `payment_intent.succeeded` updates order to `paid` after amount/currency checks (idempotent for duplicate webhooks). */
+  readonly orderRepo?: OrderRepositoryPort;
+  readonly orderService?: OrderService;
 }): (req: Request, res: Response) => Promise<void> {
-  const { webhookSecret, paymentService, logger } = opts;
+  const { webhookSecret, paymentService, logger, orderRepo, orderService } = opts;
 
   return async function stripeWebhookHandler(req: Request, res: Response): Promise<void> {
     const sig = req.headers["stripe-signature"];
@@ -136,6 +148,60 @@ export function createStripeWebhookHandler(opts: {
         },
         updatedAt: now,
       });
+
+      if (
+        event.type === "payment_intent.succeeded" &&
+        status === "captured" &&
+        orderRepo !== undefined &&
+        orderService !== undefined
+      ) {
+        const order = await orderRepo.getById(existing.orderId);
+        if (order === null) {
+          logger.error("stripe_webhook_order_not_found_after_capture", {
+            orderId: String(existing.orderId),
+            paymentIntentId: pi.id,
+          });
+        } else if (order.status === "cancelled") {
+          logger.warn("stripe_webhook_succeeded_but_order_cancelled", { orderId: String(order.id) });
+        } else {
+          const piMinor = BigInt(pi.amount);
+          if (piMinor !== order.total.amountMinor) {
+            logger.error("stripe_webhook_amount_mismatch", {
+              orderId: String(order.id),
+              paymentIntentMinor: String(piMinor),
+              orderTotalMinor: String(order.total.amountMinor),
+            });
+          } else if (pi.currency.toUpperCase() !== order.currency.toUpperCase()) {
+            logger.error("stripe_webhook_currency_mismatch", {
+              orderId: String(order.id),
+              piCurrency: pi.currency,
+              orderCurrency: order.currency,
+            });
+          } else if (
+            existing.amount.amountMinor !== order.total.amountMinor ||
+            existing.amount.currency !== order.currency
+          ) {
+            logger.error("stripe_webhook_payment_row_mismatch_order_total", {
+              orderId: String(order.id),
+              paymentId: String(existing.id),
+            });
+          } else {
+            try {
+              await orderService.markPaid(order.id);
+            } catch (e) {
+              if (e instanceof DomainError && e.code === "ORDER_STATE_INVALID") {
+                logger.warn("stripe_webhook_mark_paid_skipped_invalid_transition", {
+                  orderId: String(order.id),
+                  orderStatus: order.status,
+                  detail: e.message,
+                });
+              } else {
+                throw e;
+              }
+            }
+          }
+        }
+      }
     }
 
     res.json({ received: true });

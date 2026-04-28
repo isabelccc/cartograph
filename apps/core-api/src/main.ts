@@ -1,14 +1,25 @@
 /**
  * HTTP process entrypoint (core-api).
  *
+ * ## What this file is **not**
+ * - No route definitions — those live in **`app.ts`** + **`app/routes/`**.
+ *
+ * ## Bootstrap order (typical interview question)
+ * 1. **`parseEnv`** — Zod-validated config (`config/env.schema.ts`).
+ * 2. **SQLite + Drizzle** — `openDrizzleSqlite`; optional OIDC verifier, metrics, tracing, audit.
+ * 3. **`loadPlugins`** — manifest for `CommercePlugin`s.
+ * 4. **`createApp`** — Express app + mount routers (`app.ts`).
+ * 5. **`createHttpServer`** — bind port, graceful shutdown.
+ *
+ * ## Reading order for onboarding / deep dive
+ * `main.ts` → `app.ts` → `composition/domain-wiring.ts` → `composition/routes/register-shop.routes.ts` → `packages/modules/order/order.service.ts`
+ *
  * Requirements:
  * - R-NF-2: Bind logger at startup; subsequent requests carry requestId / tenantId (nullable).
  * - R-NF-3: Uncaught errors must not return stack traces to clients.
  * - R-NF-4: Risky capabilities behind feature flags (aligned with config/feature-flags).
- * - Bootstrap order matches kernel: config → DB → migrations → plugins → HTTP.
  *
- * **Idempotency (R-NF-1):** `POST {shop}/demo/commits` (core-defaults plugin) requires
- * `Idempotency-Key` and persists responses in SQLite; generalize with shared middleware later.
+ * **Idempotency (R-NF-1):** selected shop POSTs use shared middleware (`http/idempotency-post.ts`).
  *
  * @see ../../../../docs/SERIES-B-PLATFORM.md — Apps core-api, Global R-NF-*
  */

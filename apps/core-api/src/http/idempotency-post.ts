@@ -1,5 +1,11 @@
 /**
- * Persist idempotent POST responses (R-NF-1) when `Idempotency-Key` is present.
+ * **Idempotent POST** — same `Idempotency-Key` + route scope + **request fingerprint** → replay stored JSON body.
+ *
+ * - **`createRequireIdempotencyKeyForPost`:** rejects POSTs without header (selected routes only).
+ * - **`withIdempotency`:** wraps handler; persists successful response in SQLite (`idempotency-store`).
+ * - **BigInt:** stable JSON via `jsonStableWithBigInt` so fingerprints match responses.
+ *
+ * Interview: prevents duplicate orders/payments on **client retries**, not a substitute for domain invariants.
  */
 import type { Request, Response } from "express";
 import { DomainError } from "../../../../packages/domain-contracts/src/errors.js";
